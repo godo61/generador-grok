@@ -132,3 +132,214 @@ class GrokVideoPromptBuilder:
                 segments.append(act[0].upper() + act[1:] if act else "")
 
             if p.get('camera'): segments.append(f"Cinematography features a {p['camera']} movement.")
+            if p.get('light'): segments.append(f"Lighting matches {p['light']}.")
+            
+            if final_audio_string:
+                segments.append(f"Audio atmosphere includes: {final_audio_string}.")
+            
+            if p.get('ar'):
+                ar_val = p['ar'].split(' ')[0] 
+                segments.append(f"--ar {ar_val}")
+            
+            return re.sub(' +', ' ', " ".join(segments)).strip()
+
+        # --- MODO TEXTO ---
+        else:
+            visual = []
+            subj = p.get('subject', '')
+            if p.get('details'): subj += f", wearing or featuring {p['details']}"
+            if subj: visual.append(subj)
+
+            if p.get('action'):
+                act = p['action']
+                visual.append(visual[-1] + f", currently {act}" if visual else f"A scene showing {act}")
+
+            if p.get('env'): visual.append(f"set within a {p['env']}")
+            if p.get('light'): visual.append(f"illuminated by {p['light']}")
+
+            scene = ", ".join(visual)
+            if scene: scene = scene[0].upper() + scene[1:] + "."
+
+            final = []
+            if p.get('style'): final.append(f"A {p['style']} style video.")
+            if scene: final.append(scene)
+            if p.get('camera'): final.append(f"Cinematography features a {p['camera']} movement.")
+            
+            if final_audio_string:
+                final.append(f"Audio atmosphere includes: {final_audio_string}.")
+            
+            if p.get('ar'):
+                ar_val = p['ar'].split(' ')[0]
+                final.append(f"--ar {ar_val}")
+
+            return re.sub(' +', ' ', " ".join(final)).strip()
+
+# --- INTERFAZ ---
+with st.sidebar:
+    st.header("🧬 Mis Personajes")
+    with st.expander("Añadir Personaje Nuevo"):
+        new_name = st.text_input("Nombre")
+        new_desc = st.text_area("Descripción Visual")
+        if st.button("Guardar en Memoria"):
+            if new_name and new_desc:
+                st.session_state.characters[new_name] = translate_to_english(new_desc)
+                st.success("Guardado")
+    
+    st.markdown("---")
+    st.header("🖼️ Imagen Base")
+    uploaded_file = st.file_uploader("Sube referencia...", type=["jpg", "png"])
+    if uploaded_file:
+        st.session_state.uploaded_image_name = uploaded_file.name
+        st.image(uploaded_file, caption="Referencia Activa")
+    else:
+        st.session_state.uploaded_image_name = None
+
+    st.markdown("---")
+    st.header("📜 Historial")
+    for i, item in enumerate(reversed(st.session_state.history[:5])):
+        st.text_area(f"Prompt {len(st.session_state.history)-i}", item, height=80, key=f"h{i}")
+
+# PANEL PRINCIPAL
+st.title("🎬 Grok Video Builder")
+
+# Variables vacías
+final_sub = ""
+sty, act, det, env = "", "", "", ""
+lit, cam, ar = "", "", ""
+aud_mood, aud_env = "", ""
+
+# Variable especial para el SFX final
+final_sfx_selection = ""
+
+if st.session_state.uploaded_image_name:
+    # --- MODO IMAGEN ---
+    st.info(f"Modo Imagen Activo: {st.session_state.uploaded_image_name}")
+    
+    tab1, tab2, tab3 = st.tabs(["🖼️ Referencia & Acción", "🎥 Técnica", "🎵 Audio Pro"])
+    
+    with tab1:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("##### Qué preservar")
+            keep_s = st.checkbox("Mantener Sujeto", True)
+            keep_b = st.checkbox("Mantener Fondo", True)
+        with c2:
+            st.markdown("##### Acción")
+            act_img = st.text_area("¿Qué movimiento quieres?", placeholder="Ej: Que sonría lentamente", height=100)
+            
+    with tab2:
+        c1, c2, c3 = st.columns(3)
+        with c1: cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
+        with c2: lit_img = st.selectbox("Iluminación", DEMO_LIGHTING)
+        with c3: ar_img = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
+            
+    with tab3:
+        c_au1, c_au2 = st.columns(2)
+        with c_au1: aud_mood_img = st.selectbox("Estilo Musical", DEMO_AUDIO_MOOD)
+        with c_au2: aud_env_img = st.selectbox("Ambiente de Fondo", DEMO_AUDIO_ENV)
+        
+        # SELECTOR DE SFX INTELIGENTE
+        st.markdown("##### Efectos Puntuales (SFX)")
+        sfx_choice_img = st.selectbox("Selecciona Efecto", DEMO_SFX_COMMON, key="sfx_img")
+        
+        if "Custom" in sfx_choice_img:
+            custom_sfx_val = st.text_input("Describe el efecto sonoro:", key="custom_sfx_img_input")
+            final_sfx_selection = translate_to_english(custom_sfx_val)
+        else:
+            final_sfx_selection = sfx_choice_img # Ya está en inglés en la lista
+
+    st.markdown("---")
+    if st.button("✨ GENERAR VIDEO-PROMPT (IMAGEN)", type="primary"):
+        b = GrokVideoPromptBuilder()
+        b.activate_img2video(st.session_state.uploaded_image_name)
+        b.set_field('keep_subject', keep_s)
+        b.set_field('keep_bg', keep_b)
+        b.set_field('img_action', translate_to_english(act_img))
+        b.set_field('camera', cam_img)
+        b.set_field('light', lit_img)
+        b.set_field('ar', ar_img)
+        b.set_field('audio_mood', aud_mood_img)
+        b.set_field('audio_env', aud_env_img)
+        b.set_field('audio_sfx', final_sfx_selection)
+        
+        st.session_state.generated_output = b.build()
+        st.session_state.history.append(st.session_state.generated_output)
+
+else:
+    # --- MODO TEXTO ---
+    tab_basic, tab_visual, tab_tech, tab_audio = st.tabs(["📝 Básico (Historia)", "🎨 Visual", "🎥 Técnica", "🎵 Audio Pro"])
+    
+    with tab_basic:
+        st.subheader("El Protagonista y la Acción")
+        char_sel = st.selectbox("Elige Actor:", list(st.session_state.characters.keys()))
+        dna = st.session_state.characters[char_sel]
+
+        if dna:
+            st.success(f"🎭 Actuando: {char_sel}")
+            final_sub = dna
+        else:
+            sub_raw = st.text_input("Sujeto (¿Quién?)", placeholder="Ej: Un astronauta gordo")
+            final_sub = translate_to_english(sub_raw)
+            
+        c1, c2 = st.columns(2)
+        with c1: act = st.text_input("Acción Principal", placeholder="Ej: corriendo asustado")
+        with c2: det = st.text_input("Detalles Temporales", placeholder="Ej: ropa mojada, sucio")
+
+    with tab_visual:
+        st.subheader("Estética de la escena")
+        c1, c2 = st.columns(2)
+        with c1:
+            sty = st.selectbox("Estilo Artístico", DEMO_STYLES)
+            env = st.text_input("Entorno / Lugar", placeholder="Ej: bosque futurista")
+        with c2:
+            lit = st.selectbox("Iluminación", DEMO_LIGHTING)
+
+    with tab_tech:
+        st.subheader("Dirección de Cámara")
+        c1, c2 = st.columns(2)
+        with c1: cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
+        with c2: ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
+
+    with tab_audio:
+        st.subheader("Diseño Sonoro por Capas")
+        c_au1, c_au2 = st.columns(2)
+        with c_au1:
+            aud_mood = st.selectbox("Banda Sonora / Mood", DEMO_AUDIO_MOOD)
+        with c_au2:
+            aud_env = st.selectbox("Atmósfera / Fondo", DEMO_AUDIO_ENV)
+            
+        # SELECTOR DE SFX INTELIGENTE
+        st.markdown("##### Efectos Puntuales (SFX)")
+        sfx_choice = st.selectbox("Selecciona Efecto", DEMO_SFX_COMMON, key="sfx_txt")
+        
+        if "Custom" in sfx_choice:
+            custom_sfx_val = st.text_input("Describe el efecto sonoro:", key="custom_sfx_txt_input")
+            final_sfx_selection = translate_to_english(custom_sfx_val)
+        else:
+            final_sfx_selection = sfx_choice
+
+    st.markdown("---")
+    if st.button("✨ GENERAR PROMPT DE HISTORIA", type="primary"):
+        b = GrokVideoPromptBuilder()
+        b.set_field('style', translate_to_english(sty))
+        b.set_field('subject', final_sub)
+        b.set_field('details', translate_to_english(det))
+        b.set_field('action', translate_to_english(act))
+        b.set_field('env', translate_to_english(env))
+        b.set_field('light', lit)
+        b.set_field('camera', cam)
+        b.set_field('ar', ar)
+        b.set_field('audio_mood', aud_mood)
+        b.set_field('audio_env', aud_env)
+        b.set_field('audio_sfx', final_sfx_selection)
+        
+        st.session_state.generated_output = b.build()
+        st.session_state.history.append(st.session_state.generated_output)
+
+# --- ZONA DE RESULTADOS ---
+if st.session_state.generated_output:
+    st.markdown("---")
+    st.subheader("📝 Tu Prompt Final")
+    edited_prompt = st.text_area("Edita o corrige el texto aquí antes de copiar:", value=st.session_state.generated_output, height=150)
+    st.caption("👇 Copia el código final aquí:")
+    st.code(edited_prompt, language="text")
