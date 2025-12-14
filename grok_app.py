@@ -12,7 +12,7 @@ if 'history' not in st.session_state:
 if 'uploaded_image_name' not in st.session_state:
     st.session_state.uploaded_image_name = None
 
-# --- TUS PERSONAJES ---
+# --- TUS PERSONAJES (TON y FREYA) ---
 if 'characters' not in st.session_state:
     st.session_state.characters = {
         "Nada (Generar nuevo)": "",
@@ -38,32 +38,35 @@ def translate_to_english(text):
 
 # --- LISTAS DE OPCIONES ---
 DEMO_STYLES = [
-    "Photorealistic 8k",
-    "Anime / Manga",
-    "3D Render (Octane)",
-    "Oil Painting",
-    "Vintage Film (VHS)",
-    "Claymation",
-    "Pixel Art (8-bit)",
-    "Abstract / Experimental",
-    "Surrealism (Dreamlike)",
-    "Fantasy / RPG",
-    "Cyberpunk / Sci-Fi",
-    "Film Noir / B&W",
-    "Watercolor / Ink"
+    "Photorealistic 8k", "Anime / Manga", "3D Render (Octane)", "Oil Painting", 
+    "Vintage Film (VHS)", "Claymation", "Pixel Art (8-bit)", "Abstract / Experimental", 
+    "Surrealism (Dreamlike)", "Fantasy / RPG", "Cyberpunk / Sci-Fi", "Film Noir / B&W", "Watercolor / Ink"
 ]
 
-# ¡NUEVA LISTA DE ILUMINACIÓN!
 DEMO_LIGHTING = [
-    "Natural Daylight",
-    "Cinematic / Dramatic",
-    "Cyberpunk / Neon",
-    "Studio Lighting",
-    "Golden Hour",
-    "Low Key / Dark"
+    "Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", 
+    "Studio Lighting", "Golden Hour", "Low Key / Dark"
 ]
 
-DEMO_CAMERAS = ["Static shot", "Slow zoom in", "Fast tracking shot", "Drone flyover", "Handheld shaky cam", "Low angle"]
+# NUEVA LISTA: RELACIÓN DE ASPECTO
+DEMO_ASPECT_RATIOS = [
+    "16:9 (Landscape)",
+    "9:16 (Portrait)",
+    "1:1 (Square)",
+    "21:9 (Ultrawide)"
+]
+
+# NUEVA LISTA: MOVIMIENTOS DE CÁMARA COMPLETOS
+DEMO_CAMERAS = [
+    "Static", 
+    "Zoom In", "Zoom Out", 
+    "Dolly In", "Dolly Out", 
+    "Truck Left", "Truck Right", 
+    "Pedestal Up", "Pedestal Down", 
+    "Pan", "Tilt", "Orbit", 
+    "Handheld / Shake", 
+    "FPV Drone"
+]
 
 # --- MOTOR DE PROMPTS ---
 class GrokVideoPromptBuilder:
@@ -82,7 +85,7 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
-        # MODO IMAGEN
+        # --- MODO IMAGEN ---
         if self.is_img2video:
             segments = [f"Based on the uploaded image '{self.image_filename}'."]
             
@@ -95,14 +98,20 @@ class GrokVideoPromptBuilder:
                 act = p['img_action']
                 segments.append(act[0].upper() + act[1:] if act else "")
 
-            if p.get('camera'): segments.append(f"Cinematography features a {p['camera']}.")
-            if p.get('audio'): segments.append(f"Audio atmosphere includes {p['audio']}.")
-            # Añadimos iluminación en modo imagen también por si acaso
+            # Técnica para Imagen
+            if p.get('camera'): segments.append(f"Cinematography features a {p['camera']} movement.")
             if p.get('light'): segments.append(f"Lighting matches {p['light']}.")
+            if p.get('audio'): segments.append(f"Audio atmosphere includes {p['audio']}.")
+            
+            # Aspect Ratio al final (Standard Flag)
+            if p.get('ar'):
+                # Extraemos solo el número (ej: "16:9") del texto del selector
+                ar_val = p['ar'].split(' ')[0] 
+                segments.append(f"--ar {ar_val}")
             
             return re.sub(' +', ' ', " ".join(segments)).strip()
 
-        # MODO TEXTO (PERSONAJES)
+        # --- MODO TEXTO (PERSONAJES) ---
         else:
             visual = []
             subj = p.get('subject', '')
@@ -114,7 +123,6 @@ class GrokVideoPromptBuilder:
                 visual.append(visual[-1] + f", currently {act}" if visual else f"A scene showing {act}")
 
             if p.get('env'): visual.append(f"set within a {p['env']}")
-            # Aquí inyectamos la iluminación seleccionada
             if p.get('light'): visual.append(f"illuminated by {p['light']}")
 
             scene = ", ".join(visual)
@@ -123,21 +131,26 @@ class GrokVideoPromptBuilder:
             final = []
             if p.get('style'): final.append(f"A {p['style']} style video.")
             if scene: final.append(scene)
-            if p.get('camera'): final.append(f"Cinematography features a {p['camera']}.")
+            if p.get('camera'): final.append(f"Cinematography features a {p['camera']} movement.")
             if p.get('audio'): final.append(f"Audio atmosphere includes {p['audio']}.")
+            
+            # Aspect Ratio al final
+            if p.get('ar'):
+                ar_val = p['ar'].split(' ')[0]
+                final.append(f"--ar {ar_val}")
+
             return re.sub(' +', ' ', " ".join(final)).strip()
 
 # --- INTERFAZ ---
 with st.sidebar:
     st.header("🧬 Mis Personajes")
-    
     with st.expander("Añadir Personaje Nuevo"):
         new_name = st.text_input("Nombre")
         new_desc = st.text_area("Descripción Visual")
         if st.button("Guardar en Memoria"):
             if new_name and new_desc:
                 st.session_state.characters[new_name] = translate_to_english(new_desc)
-                st.success("Guardado (Temporal)")
+                st.success("Guardado")
     
     st.markdown("---")
     st.header("🖼️ Imagen Base")
@@ -157,6 +170,7 @@ with st.sidebar:
 st.title("🎬 Grok Video Builder")
 
 if st.session_state.uploaded_image_name:
+    # --- INTERFAZ MODO IMAGEN ---
     st.info(f"Modo Imagen: {st.session_state.uploaded_image_name}")
     col1, col2 = st.columns(2)
     with col1:
@@ -165,13 +179,11 @@ if st.session_state.uploaded_image_name:
     with col2:
         act_img = st.text_area("¿Qué movimiento quieres?", placeholder="Ej: Que sonría")
     
-    # Aquí están los selectores técnicos para imagen
-    c_img1, c_img2 = st.columns(2)
-    with c_img1:
-        cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
-    with c_img2:
-        # Nuevo selector de luz para modo imagen
-        lit_img = st.selectbox("Iluminación", DEMO_LIGHTING)
+    st.subheader("Configuración Técnica")
+    c_img1, c_img2, c_img3 = st.columns(3)
+    with c_img1: cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
+    with c_img2: lit_img = st.selectbox("Iluminación", DEMO_LIGHTING)
+    with c_img3: ar_img = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
         
     aud_img = st.text_input("Audio")
 
@@ -182,13 +194,15 @@ if st.session_state.uploaded_image_name:
         b.set_field('keep_bg', keep_b)
         b.set_field('img_action', translate_to_english(act_img))
         b.set_field('camera', cam_img)
-        b.set_field('light', lit_img) # Enviamos la luz
+        b.set_field('light', lit_img)
+        b.set_field('ar', ar_img)
         b.set_field('audio', translate_to_english(aud_img))
         res = b.build()
         st.session_state.history.append(res)
         st.code(res, language='text')
 
 else:
+    # --- INTERFAZ MODO TEXTO/PERSONAJES ---
     st.info("Modo Historia (Texto / Personajes)")
     char_sel = st.selectbox("Elige Actor:", list(st.session_state.characters.keys()))
     dna = st.session_state.characters[char_sel]
@@ -202,15 +216,18 @@ else:
 
     c1, c2 = st.columns(2)
     with c1:
+        st.markdown("##### 🎭 Narrativa")
         sty = st.selectbox("Estilo Visual", DEMO_STYLES)
         act = st.text_input("Acción", placeholder="Ej: corriendo")
         det = st.text_input("Detalles Extra", placeholder="Ej: ropa mojada")
-    with c2:
         env = st.text_input("Entorno", placeholder="Ej: bosque")
-        # AQUÍ ESTÁ EL CAMBIO IMPORTANTE: SELECTBOX DE LUZ
+        
+    with c2:
+        st.markdown("##### 🎥 Cámara y Luz")
         lit = st.selectbox("Iluminación", DEMO_LIGHTING)
         cam = st.selectbox("Cámara", DEMO_CAMERAS)
-        aud = st.text_input("Audio")
+        ar = st.selectbox("Formato (Aspect Ratio)", DEMO_ASPECT_RATIOS)
+        aud = st.text_input("Audio", placeholder="Ej: sonido de pasos")
 
     if st.button("✨ GENERAR PROMPT"):
         b = GrokVideoPromptBuilder()
@@ -219,8 +236,9 @@ else:
         b.set_field('details', translate_to_english(det))
         b.set_field('action', translate_to_english(act))
         b.set_field('env', translate_to_english(env))
-        b.set_field('light', lit) # Ya no traducimos, usamos el valor directo
+        b.set_field('light', lit)
         b.set_field('camera', cam)
+        b.set_field('ar', ar)
         b.set_field('audio', translate_to_english(aud))
         res = b.build()
         st.session_state.history.append(res)
