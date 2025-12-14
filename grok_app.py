@@ -37,52 +37,38 @@ def translate_to_english(text):
 
 # --- LISTAS DE OPCIONES ---
 DEMO_STYLES = [
-    "Photorealistic 8k",
-    "Anime / Manga",
-    "3D Render (Octane)",
-    "Oil Painting",
-    "Vintage Film (VHS)",
-    "Claymation",
-    "Pixel Art (8-bit)",
-    "Abstract / Experimental",
-    "Surrealism (Dreamlike)",
-    "Fantasy / RPG",
-    "Cyberpunk / Sci-Fi",
-    "Film Noir / B&W",
+    "Photorealistic 8k", "Anime / Manga", "3D Render (Octane)", "Oil Painting",
+    "Vintage Film (VHS)", "Claymation", "Pixel Art (8-bit)", "Abstract / Experimental",
+    "Surrealism (Dreamlike)", "Fantasy / RPG", "Cyberpunk / Sci-Fi", "Film Noir / B&W",
     "Watercolor / Ink"
 ]
 
 DEMO_LIGHTING = [
-    "Natural Daylight",
-    "Cinematic / Dramatic",
-    "Cyberpunk / Neon",
-    "Studio Lighting",
-    "Golden Hour",
-    "Low Key / Dark"
+    "Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon",
+    "Studio Lighting", "Golden Hour", "Low Key / Dark"
 ]
 
 DEMO_ASPECT_RATIOS = [
-    "16:9 (Landscape)",
-    "9:16 (Portrait)",
-    "1:1 (Square)",
-    "21:9 (Ultrawide)"
+    "16:9 (Landscape)", "9:16 (Portrait)", "1:1 (Square)", "21:9 (Ultrawide)"
 ]
 
 DEMO_CAMERAS = [
-    "Static",
-    "Zoom In",
-    "Zoom Out",
-    "Dolly In",
-    "Dolly Out",
-    "Truck Left",
-    "Truck Right",
-    "Pedestal Up",
-    "Pedestal Down",
-    "Pan",
-    "Tilt",
-    "Orbit",
-    "Handheld / Shake",
-    "FPV Drone"
+    "Static", "Zoom In", "Zoom Out", "Dolly In", "Dolly Out",
+    "Truck Left", "Truck Right", "Pedestal Up", "Pedestal Down",
+    "Pan", "Tilt", "Orbit", "Handheld / Shake", "FPV Drone"
+]
+
+# NUEVAS LISTAS DE AUDIO
+DEMO_AUDIO_MOOD = [
+    "No Music (Silence)", "Cinematic Orchestral (Epic)", "Cyberpunk Synthwave", 
+    "Lo-Fi Chill", "Horror / Suspense", "Upbeat / Happy", "Sad / Melancholic",
+    "Heavy Metal / Rock", "Ambient Drone"
+]
+
+DEMO_AUDIO_ENV = [
+    "No Background Noise", "City Traffic & Sirens", "Heavy Rain & Thunder", 
+    "Forest / Nature Sounds", "Ocean Waves", "Crowded Bar / Restaurant", 
+    "Space Station Hum", "Battlefield Chaos", "Office Ambience"
 ]
 
 # --- MOTOR DE PROMPTS ---
@@ -102,6 +88,20 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
+        # --- CONSTRUCCIÓN DEL AUDIO COMPLEJO ---
+        audio_prompt_parts = []
+        # 1. Música
+        if p.get('audio_mood') and "No Music" not in p['audio_mood']:
+            audio_prompt_parts.append(f"Music style: {p['audio_mood']}")
+        # 2. Ambiente
+        if p.get('audio_env') and "No Background" not in p['audio_env']:
+            audio_prompt_parts.append(f"Environment sound: {p['audio_env']}")
+        # 3. SFX Específicos (Traducidos)
+        if p.get('audio_sfx'):
+            audio_prompt_parts.append(f"Specific SFX: {p['audio_sfx']}")
+            
+        final_audio_string = ". ".join(audio_prompt_parts)
+
         # --- MODO IMAGEN ---
         if self.is_img2video:
             segments = [f"Based on the uploaded image '{self.image_filename}'."]
@@ -115,12 +115,15 @@ class GrokVideoPromptBuilder:
                 act = p['img_action']
                 segments.append(act[0].upper() + act[1:] if act else "")
 
-            # Técnica para Imagen
+            # Técnica
             if p.get('camera'): segments.append(f"Cinematography features a {p['camera']} movement.")
             if p.get('light'): segments.append(f"Lighting matches {p['light']}.")
-            if p.get('audio'): segments.append(f"Audio atmosphere includes {p['audio']}.")
             
-            # Aspect Ratio al final
+            # Inyectar Audio Complejo
+            if final_audio_string:
+                segments.append(f"Audio atmosphere includes: {final_audio_string}.")
+            
+            # Aspect Ratio
             if p.get('ar'):
                 ar_val = p['ar'].split(' ')[0] 
                 segments.append(f"--ar {ar_val}")
@@ -148,9 +151,11 @@ class GrokVideoPromptBuilder:
             if p.get('style'): final.append(f"A {p['style']} style video.")
             if scene: final.append(scene)
             if p.get('camera'): final.append(f"Cinematography features a {p['camera']} movement.")
-            if p.get('audio'): final.append(f"Audio atmosphere includes {p['audio']}.")
             
-            # Aspect Ratio al final
+            # Inyectar Audio Complejo
+            if final_audio_string:
+                final.append(f"Audio atmosphere includes: {final_audio_string}.")
+            
             if p.get('ar'):
                 ar_val = p['ar'].split(' ')[0]
                 final.append(f"--ar {ar_val}")
@@ -185,17 +190,18 @@ with st.sidebar:
 # PANEL PRINCIPAL
 st.title("🎬 Grok Video Builder")
 
-# --- LÓGICA DE PROCESAMIENTO ---
-# Definimos variables vacías primero para que no fallen fuera de las pestañas
+# Variables vacías para evitar errores
 final_sub = ""
 sty, act, det, env = "", "", "", ""
-lit, cam, ar, aud = "", "", "", ""
+lit, cam, ar = "", "", ""
+# Variables de audio separadas
+aud_mood, aud_env, aud_sfx = "", "", ""
 
 if st.session_state.uploaded_image_name:
-    # --- MODO IMAGEN (Con Pestañas) ---
+    # --- MODO IMAGEN (Con Audio Avanzado) ---
     st.info(f"Modo Imagen Activo: {st.session_state.uploaded_image_name}")
     
-    tab1, tab2, tab3 = st.tabs(["🖼️ Referencia & Acción", "🎥 Técnica", "🎵 Audio"])
+    tab1, tab2, tab3 = st.tabs(["🖼️ Referencia & Acción", "🎥 Técnica", "🎵 Audio Pro"])
     
     with tab1:
         c1, c2 = st.columns(2)
@@ -205,7 +211,7 @@ if st.session_state.uploaded_image_name:
             keep_b = st.checkbox("Mantener Fondo", True)
         with c2:
             st.markdown("##### Acción")
-            act_img = st.text_area("¿Qué movimiento quieres en la imagen?", placeholder="Ej: Que sonría lentamente", height=100)
+            act_img = st.text_area("¿Qué movimiento quieres?", placeholder="Ej: Que sonría lentamente", height=100)
             
     with tab2:
         c1, c2, c3 = st.columns(3)
@@ -214,9 +220,14 @@ if st.session_state.uploaded_image_name:
         with c3: ar_img = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
             
     with tab3:
-        aud_img = st.text_input("Descripción de Audio", placeholder="Ej: Sonido de viento suave")
+        c_au1, c_au2 = st.columns(2)
+        with c_au1:
+            aud_mood_img = st.selectbox("Estilo Musical", DEMO_AUDIO_MOOD)
+        with c_au2:
+            aud_env_img = st.selectbox("Ambiente de Fondo", DEMO_AUDIO_ENV)
+        
+        aud_sfx_img = st.text_input("Efectos Sonoros (SFX)", placeholder="Ej: pasos metálicos, latidos de corazón")
 
-    # Botón de Generar (Fuera de las pestañas para que se vea siempre)
     st.markdown("---")
     if st.button("✨ GENERAR VIDEO-PROMPT (IMAGEN)", type="primary"):
         b = GrokVideoPromptBuilder()
@@ -227,16 +238,17 @@ if st.session_state.uploaded_image_name:
         b.set_field('camera', cam_img)
         b.set_field('light', lit_img)
         b.set_field('ar', ar_img)
-        b.set_field('audio', translate_to_english(aud_img))
+        # Enviamos los 3 campos de audio
+        b.set_field('audio_mood', aud_mood_img)
+        b.set_field('audio_env', aud_env_img)
+        b.set_field('audio_sfx', translate_to_english(aud_sfx_img))
         
         st.session_state.generated_output = b.build()
         st.session_state.history.append(st.session_state.generated_output)
 
 else:
-    # --- MODO TEXTO / PERSONAJES (Con Pestañas) ---
-    
-    # Creamos las pestañas tal cual las pediste
-    tab_basic, tab_visual, tab_tech, tab_audio = st.tabs(["📝 Básico (Historia)", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+    # --- MODO TEXTO (Con Audio Avanzado) ---
+    tab_basic, tab_visual, tab_tech, tab_audio = st.tabs(["📝 Básico (Historia)", "🎨 Visual", "🎥 Técnica", "🎵 Audio Pro"])
     
     with tab_basic:
         st.subheader("El Protagonista y la Acción")
@@ -251,10 +263,8 @@ else:
             final_sub = translate_to_english(sub_raw)
             
         c1, c2 = st.columns(2)
-        with c1:
-            act = st.text_input("Acción Principal", placeholder="Ej: corriendo asustado")
-        with c2:
-            det = st.text_input("Detalles Temporales", placeholder="Ej: ropa mojada, sucio")
+        with c1: act = st.text_input("Acción Principal", placeholder="Ej: corriendo asustado")
+        with c2: det = st.text_input("Detalles Temporales", placeholder="Ej: ropa mojada, sucio")
 
     with tab_visual:
         st.subheader("Estética de la escena")
@@ -268,16 +278,21 @@ else:
     with tab_tech:
         st.subheader("Dirección de Cámara")
         c1, c2 = st.columns(2)
-        with c1:
-            cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
-        with c2:
-            ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
+        with c1: cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
+        with c2: ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
 
     with tab_audio:
-        st.subheader("Diseño Sonoro")
-        aud = st.text_input("Ambiente y FX", placeholder="Ej: pasos fuertes, lluvia, música synthwave")
+        st.subheader("Diseño Sonoro por Capas")
+        c_au1, c_au2 = st.columns(2)
+        with c_au1:
+            aud_mood = st.selectbox("Banda Sonora / Mood", DEMO_AUDIO_MOOD)
+            st.caption("Define la emoción de la escena.")
+        with c_au2:
+            aud_env = st.selectbox("Atmósfera / Fondo", DEMO_AUDIO_ENV)
+            st.caption("Define dónde están.")
+            
+        aud_sfx = st.text_input("Efectos Puntuales (SFX)", placeholder="Ej: sonido de espada láser, grito lejano")
 
-    # Botón de Generar
     st.markdown("---")
     if st.button("✨ GENERAR PROMPT DE HISTORIA", type="primary"):
         b = GrokVideoPromptBuilder()
@@ -289,23 +304,18 @@ else:
         b.set_field('light', lit)
         b.set_field('camera', cam)
         b.set_field('ar', ar)
-        b.set_field('audio', translate_to_english(aud))
+        # Enviamos los 3 campos de audio
+        b.set_field('audio_mood', aud_mood)
+        b.set_field('audio_env', aud_env)
+        b.set_field('audio_sfx', translate_to_english(aud_sfx))
         
         st.session_state.generated_output = b.build()
         st.session_state.history.append(st.session_state.generated_output)
 
-# --- ZONA DE RESULTADOS EDITABLE ---
+# --- ZONA DE RESULTADOS ---
 if st.session_state.generated_output:
     st.markdown("---")
     st.subheader("📝 Tu Prompt Final")
-    
-    # 1. Caja de texto para editar
-    edited_prompt = st.text_area(
-        "Edita o corrige el texto aquí antes de copiar:", 
-        value=st.session_state.generated_output, 
-        height=150
-    )
-    
-    # 2. Caja de CÓDIGO (Botón de copiar en la esquina)
+    edited_prompt = st.text_area("Edita o corrige el texto aquí antes de copiar:", value=st.session_state.generated_output, height=150)
     st.caption("👇 Copia el código final aquí:")
     st.code(edited_prompt, language="text")
