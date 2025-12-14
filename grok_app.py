@@ -70,11 +70,17 @@ DEMO_ASPECT_RATIOS = [
 
 DEMO_CAMERAS = [
     "Static",
-    "Zoom In", "Zoom Out",
-    "Dolly In", "Dolly Out",
-    "Truck Left", "Truck Right",
-    "Pedestal Up", "Pedestal Down",
-    "Pan", "Tilt", "Orbit",
+    "Zoom In",
+    "Zoom Out",
+    "Dolly In",
+    "Dolly Out",
+    "Truck Left",
+    "Truck Right",
+    "Pedestal Up",
+    "Pedestal Down",
+    "Pan",
+    "Tilt",
+    "Orbit",
     "Handheld / Shake",
     "FPV Drone"
 ]
@@ -179,25 +185,40 @@ with st.sidebar:
 # PANEL PRINCIPAL
 st.title("🎬 Grok Video Builder")
 
-if st.session_state.uploaded_image_name:
-    # --- INTERFAZ MODO IMAGEN ---
-    st.info(f"Modo Imagen: {st.session_state.uploaded_image_name}")
-    col1, col2 = st.columns(2)
-    with col1:
-        keep_s = st.checkbox("Mantener Sujeto", True)
-        keep_b = st.checkbox("Mantener Fondo", True)
-    with col2:
-        act_img = st.text_area("¿Qué movimiento quieres?", placeholder="Ej: Que sonría")
-    
-    st.subheader("Configuración Técnica")
-    c_img1, c_img2, c_img3 = st.columns(3)
-    with c_img1: cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
-    with c_img2: lit_img = st.selectbox("Iluminación", DEMO_LIGHTING)
-    with c_img3: ar_img = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
-        
-    aud_img = st.text_input("Audio")
+# --- LÓGICA DE PROCESAMIENTO ---
+# Definimos variables vacías primero para que no fallen fuera de las pestañas
+final_sub = ""
+sty, act, det, env = "", "", "", ""
+lit, cam, ar, aud = "", "", "", ""
 
-    if st.button("✨ GENERAR VIDEO-PROMPT"):
+if st.session_state.uploaded_image_name:
+    # --- MODO IMAGEN (Con Pestañas) ---
+    st.info(f"Modo Imagen Activo: {st.session_state.uploaded_image_name}")
+    
+    tab1, tab2, tab3 = st.tabs(["🖼️ Referencia & Acción", "🎥 Técnica", "🎵 Audio"])
+    
+    with tab1:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("##### Qué preservar")
+            keep_s = st.checkbox("Mantener Sujeto", True)
+            keep_b = st.checkbox("Mantener Fondo", True)
+        with c2:
+            st.markdown("##### Acción")
+            act_img = st.text_area("¿Qué movimiento quieres en la imagen?", placeholder="Ej: Que sonría lentamente", height=100)
+            
+    with tab2:
+        c1, c2, c3 = st.columns(3)
+        with c1: cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
+        with c2: lit_img = st.selectbox("Iluminación", DEMO_LIGHTING)
+        with c3: ar_img = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
+            
+    with tab3:
+        aud_img = st.text_input("Descripción de Audio", placeholder="Ej: Sonido de viento suave")
+
+    # Botón de Generar (Fuera de las pestañas para que se vea siempre)
+    st.markdown("---")
+    if st.button("✨ GENERAR VIDEO-PROMPT (IMAGEN)", type="primary"):
         b = GrokVideoPromptBuilder()
         b.activate_img2video(st.session_state.uploaded_image_name)
         b.set_field('keep_subject', keep_s)
@@ -212,34 +233,53 @@ if st.session_state.uploaded_image_name:
         st.session_state.history.append(st.session_state.generated_output)
 
 else:
-    # --- INTERFAZ MODO TEXTO/PERSONAJES ---
-    st.info("Modo Historia (Texto / Personajes)")
-    char_sel = st.selectbox("Elige Actor:", list(st.session_state.characters.keys()))
-    dna = st.session_state.characters[char_sel]
+    # --- MODO TEXTO / PERSONAJES (Con Pestañas) ---
+    
+    # Creamos las pestañas tal cual las pediste
+    tab_basic, tab_visual, tab_tech, tab_audio = st.tabs(["📝 Básico (Historia)", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+    
+    with tab_basic:
+        st.subheader("El Protagonista y la Acción")
+        char_sel = st.selectbox("Elige Actor:", list(st.session_state.characters.keys()))
+        dna = st.session_state.characters[char_sel]
 
-    if dna:
-        st.success(f"Actuando: {char_sel}")
-        final_sub = dna
-    else:
-        sub_raw = st.text_input("Sujeto")
-        final_sub = translate_to_english(sub_raw)
+        if dna:
+            st.success(f"🎭 Actuando: {char_sel}")
+            final_sub = dna
+        else:
+            sub_raw = st.text_input("Sujeto (¿Quién?)", placeholder="Ej: Un astronauta gordo")
+            final_sub = translate_to_english(sub_raw)
+            
+        c1, c2 = st.columns(2)
+        with c1:
+            act = st.text_input("Acción Principal", placeholder="Ej: corriendo asustado")
+        with c2:
+            det = st.text_input("Detalles Temporales", placeholder="Ej: ropa mojada, sucio")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("##### 🎭 Narrativa")
-        sty = st.selectbox("Estilo Visual", DEMO_STYLES)
-        act = st.text_input("Acción", placeholder="Ej: corriendo")
-        det = st.text_input("Detalles Extra", placeholder="Ej: ropa mojada")
-        env = st.text_input("Entorno", placeholder="Ej: bosque")
-        
-    with c2:
-        st.markdown("##### 🎥 Cámara y Luz")
-        lit = st.selectbox("Iluminación", DEMO_LIGHTING)
-        cam = st.selectbox("Cámara", DEMO_CAMERAS)
-        ar = st.selectbox("Formato (Aspect Ratio)", DEMO_ASPECT_RATIOS)
-        aud = st.text_input("Audio", placeholder="Ej: sonido de pasos")
+    with tab_visual:
+        st.subheader("Estética de la escena")
+        c1, c2 = st.columns(2)
+        with c1:
+            sty = st.selectbox("Estilo Artístico", DEMO_STYLES)
+            env = st.text_input("Entorno / Lugar", placeholder="Ej: bosque futurista")
+        with c2:
+            lit = st.selectbox("Iluminación", DEMO_LIGHTING)
 
-    if st.button("✨ GENERAR PROMPT"):
+    with tab_tech:
+        st.subheader("Dirección de Cámara")
+        c1, c2 = st.columns(2)
+        with c1:
+            cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
+        with c2:
+            ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
+
+    with tab_audio:
+        st.subheader("Diseño Sonoro")
+        aud = st.text_input("Ambiente y FX", placeholder="Ej: pasos fuertes, lluvia, música synthwave")
+
+    # Botón de Generar
+    st.markdown("---")
+    if st.button("✨ GENERAR PROMPT DE HISTORIA", type="primary"):
         b = GrokVideoPromptBuilder()
         b.set_field('style', translate_to_english(sty))
         b.set_field('subject', final_sub)
@@ -255,17 +295,17 @@ else:
         st.session_state.history.append(st.session_state.generated_output)
 
 # --- ZONA DE RESULTADOS EDITABLE ---
-st.markdown("---")
 if st.session_state.generated_output:
+    st.markdown("---")
     st.subheader("📝 Tu Prompt Final")
     
-    # 1. Caja de texto para editar (Aquí NO está el botón de copia, solo para escribir)
+    # 1. Caja de texto para editar
     edited_prompt = st.text_area(
-        "Edita o corrige el texto aquí si es necesario:", 
+        "Edita o corrige el texto aquí antes de copiar:", 
         value=st.session_state.generated_output, 
-        height=200
+        height=150
     )
     
-    # 2. Caja de CÓDIGO (Aquí SÍ aparece el icono de las dos hojitas al pasar el ratón)
-    st.caption("👇 Haz clic en el icono de la esquina derecha para copiar:")
+    # 2. Caja de CÓDIGO (Botón de copiar en la esquina)
+    st.caption("👇 Copia el código final aquí:")
     st.code(edited_prompt, language="text")
