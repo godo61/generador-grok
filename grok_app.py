@@ -3,46 +3,38 @@ import random
 import re
 from deep_translator import GoogleTranslator
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Grok Video Builder Pro", layout="wide", page_icon="🎬")
 
-# --- 1. GESTIÓN DEL ESTADO (MEMORIA) ---
+# --- MEMORIA ---
 if 'history' not in st.session_state:
     st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state:
     st.session_state.uploaded_image_name = None
 
-# --- 2. FUNCIONES DE AYUDA ---
+# --- AQUÍ ES DONDE PEGAS TU ADN (PASO CRÍTICO) ---
+if 'characters' not in st.session_state:
+    st.session_state.characters = {
+        "Nada (Generar nuevo)": "",
+        # BORRA LOS EJEMPLOS Y PON TUS PERSONAJES:
+        "TON": "A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique, characterized by an elegant verticality and lean, wiry muscularity rather than bulk. He possesses a confident, architectural facial structure with high, defined cheekbones and a jawline that cuts a sharp geometric profile, overlaid with a texture of faint, authentic skin porosity and a meticulously groomed five o'clock shadow that maps the contours of his lower face. His hair is styled in a modern, textured quiff with a matte finish, dark chestnut strands caught in a chaotic yet deliberate motion, featuring a subtle fade at the temples that blends seamlessly into the skin. He is attired in a high-quality, charcoal-grey heavyweight cotton t-shirt that drapes loosely over his slender frame, revealing the definition of his clavicles and shoulders without clinging, paired with dark, raw selvedge denim jeans that exhibit realistic stiffness and indigo depth. The lighting is cinematic and moody, utilizing a soft-box key light from the upper left to carve out the depth of his facial features in a Rembrandt style, while a cool-toned rim light separates his dark silhouette from a blurred, neutral urban background, creating a volumetric atmosphere. The image quality exudes the characteristics of an 85mm prime lens photograph at f/1.8, capturing the wetness in his eyes and the tactile weave of the fabric with startling clarity, rendered in 8k resolution with a raw, unfiltered aesthetic.",
+        "FREYA": "A hyper-realistic, cinematic medium shot of a 25-year-old female survivor with a statuesque, athletic 170cm and 60kg physique, exhibiting defined lean muscle mass and core tension typical of extreme exertion. She possesses a striking, symmetrical face with high cheekbones, a sharp jawline, and intense, piercing hazel eyes dilated with adrenaline; her skin texture is rendered with extreme fidelity, showcasing visible pores, vellus hair on the jawline, and uneven localized redness, all glistening with hyper-detailed water beads and sweat exhibiting realistic subsurface scattering. She is completely drenched; her heavy, dark brunette hair is matted and sodden, clinging flat against her skull and neck in distinct wet clumps, with stray strands sticking to her wet face. She is outfitted in a futuristic 'Aquatic Warcore' tactical wetsuit constructed from matte black Yamamoto 39-cell limestone neoprene featuring contrasting glossy geometric Glideskin chest panels, reinforced GBS seams, and a complex mil-spec nylon webbing harness system secured with metallic Cobra buckles and asymmetrical waterproof zippers. The scene is immersed in a turbulent marine environment during the blue hour, characterized by volumetric sea mist, driving rain, and dramatic cool-toned storm lighting that creates sharp specular highlights on the wet neoprene and skin, captured with the shallow depth of field of an 85mm f/1.8 lens, creating a raw, gritty, survivalist aesthetic in 8k resolution."
+    }
+
+# --- FUNCIONES ---
 def translate_to_english(text):
-    """Traduce al inglés."""
     if text and text.strip():
         try:
             return GoogleTranslator(source='auto', target='en').translate(text)
         except Exception as e:
-            return text # Fallback si falla la traducción
+            return text
     return ""
 
-# Datos para "Sorpréndeme" (Versión Texto a Video)
-DEMO_STYLES = ["Photorealistic 8k", "Cinematic Film Stock", "3D Render (Unreal Engine 5)", "Anime Studio Ghibli Style", "Cyberpunk Noir"]
-DEMO_SUBJECTS = ["Un robot samurái", "Un gato astronauta", "Un coche deportivo clásico", "Una guerrera elfa"]
-DEMO_DETAILS = ["armadura dorada oxidada", "traje espacial blanco brillante", "cromados y rayas rojas", "tatuajes azules brillantes"]
-DEMO_ACTIONS = ["luchando con una espada láser", "flotando en gravedad cero", "derrapando a alta velocidad", "lanzando un hechizo mágico"]
-DEMO_ENVS = ["una calle de Tokio futurista", "la superficie de Marte", "una autopista desierta", "un bosque mágico antiguo"]
-DEMO_CAMERAS = ["Slow motion zoom in", "Fast tracking shot", "Drone flyover", "Handheld shaky cam"]
-DEMO_AUDIOS = ["lluvia golpeando metal", "motor rugiendo", "destellos mágicos y viento", "música épica"]
+# --- LISTAS DEMO ---
+DEMO_STYLES = ["Photorealistic 8k", "Cinematic Film Stock", "3D Render (Unreal Engine 5)", "Anime Studio Ghibli Style", "Cyberpunk Noir", "Vintage VHS"]
+DEMO_CAMERAS = ["Static shot", "Slow zoom in", "Fast tracking shot", "Drone flyover", "Handheld shaky cam", "Low angle"]
 
-def randomize_text_fields():
-    """Rellena los campos de texto con valores aleatorios."""
-    st.session_state.k_style = random.choice(DEMO_STYLES)
-    st.session_state.k_subject = random.choice(DEMO_SUBJECTS)
-    st.session_state.k_details = random.choice(DEMO_DETAILS)
-    st.session_state.k_action = random.choice(DEMO_ACTIONS)
-    st.session_state.k_env = random.choice(DEMO_ENVS)
-    st.session_state.k_light = ""
-    st.session_state.k_audio = random.choice(DEMO_AUDIOS)
-    st.session_state.k_camera = random.choice(DEMO_CAMERAS)
-
-# --- 3. EL MOTOR (Constructor de Prompts) ---
+# --- MOTOR DE PROMPTS ---
 class GrokVideoPromptBuilder:
     def __init__(self):
         self.parts = {}
@@ -59,186 +51,134 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
-        # --- LÓGICA PARA IMAGEN A VIDEO ---
+        # MODO IMAGEN
         if self.is_img2video:
-            # Estructura específica: Referencia + Qué mantener + Qué animar
-            prompt_segments = []
+            segments = [f"Based on the uploaded image '{self.image_filename}'."]
             
-            # 1. Referencia a la imagen (Crucial para que Grok sepa que la usa)
-            prompt_segments.append(f"Based on the uploaded image '{self.image_filename}'.")
-            
-            # 2. Instrucciones de Preservación (FLUX)
-            keep_list = []
-            if p.get('keep_subject'):
-                 keep_list.append("the main subject's appearance and identity")
-            if p.get('keep_bg'):
-                 keep_list.append("the background composition")
-            
-            if keep_list:
-                 preservation_text = "Strictly maintain " + " and ".join(keep_list) + "."
-                 prompt_segments.append(preservation_text)
+            keep = []
+            if p.get('keep_subject'): keep.append("the main subject's appearance")
+            if p.get('keep_bg'): keep.append("the background composition")
+            if keep: segments.append("Strictly maintain " + " and ".join(keep) + ".")
 
-            # 3. Instrucciones de Animación/Cambio (Aurora)
-            animation_actions = []
             if p.get('img_action'):
-                 animation_actions.append(p['img_action'])
-            
-            if animation_actions:
-                 # Unir acciones y asegurar que empiecen con mayúscula
-                 action_text = ". ".join(animation_actions)
-                 if not action_text.endswith('.'): action_text += '.'
-                 prompt_segments.append(action_text[0].upper() + action_text[1:])
+                act = p['img_action']
+                segments.append(act[0].upper() + act[1:] if act else "")
 
-            # 4. Elementos Técnicos Adicionales
-            if p.get('camera'):
-                 prompt_segments.append(f"Cinematography features a {p['camera']}.")
-            if p.get('audio'):
-                 prompt_segments.append(f"Audio atmosphere includes {p['audio']}.")
-            
-            return re.sub(' +', ' ', " ".join(prompt_segments)).strip()
+            if p.get('camera'): segments.append(f"Cinematography features a {p['camera']}.")
+            if p.get('audio'): segments.append(f"Audio atmosphere includes {p['audio']}.")
+            return re.sub(' +', ' ', " ".join(segments)).strip()
 
-        # --- LÓGICA PARA TEXTO A VIDEO (La original) ---
+        # MODO TEXTO (PERSONAJES)
         else:
-            visual_core = []
-            subject_phrase = p.get('subject', '')
-            if p.get('details'):
-                subject_phrase += f", made of or wearing {p['details']}"
-            if subject_phrase:
-                visual_core.append(subject_phrase)
+            visual = []
+            subj = p.get('subject', '')
+            if p.get('details'): subj += f", wearing or featuring {p['details']}"
+            if subj: visual.append(subj)
 
             if p.get('action'):
-                action_text = p['action']
-                if visual_core:
-                    visual_core[-1] += f", currently {action_text}"
-                else:
-                    visual_core.append(f"A scene showing {action_text}")
+                act = p['action']
+                visual.append(visual[-1] + f", currently {act}" if visual else f"A scene showing {act}")
 
-            if p.get('env'):
-                visual_core.append(f"set within a {p['env']}")
-            if p.get('light'):
-                visual_core.append(f"illuminated by {p['light']} lighting")
+            if p.get('env'): visual.append(f"set within a {p['env']}")
+            if p.get('light'): visual.append(f"illuminated by {p['light']} lighting")
 
-            scene_text = ", ".join(visual_core)
-            if scene_text:
-                scene_text = scene_text[0].upper() + scene_text[1:] + "."
+            scene = ", ".join(visual)
+            if scene: scene = scene[0].upper() + scene[1:] + "."
 
-            final_segments = []
-            if p.get('style'):
-                final_segments.append(f"A {p['style']} style video.")
-            if scene_text:
-                final_segments.append(scene_text)
-            if p.get('camera'):
-                final_segments.append(f"Cinematography features a {p['camera']}.")
-            if p.get('audio'):
-                final_segments.append(f"Audio atmosphere includes {p['audio']}.")
+            final = []
+            if p.get('style'): final.append(f"A {p['style']} style video.")
+            if scene: final.append(scene)
+            if p.get('camera'): final.append(f"Cinematography features a {p['camera']}.")
+            if p.get('audio'): final.append(f"Audio atmosphere includes {p['audio']}.")
+            return re.sub(' +', ' ', " ".join(final)).strip()
 
-            return re.sub(' +', ' ', " ".join(final_segments)).strip()
-
-# --- 4. INTERFAZ GRÁFICA ---
-
-# BARRA LATERAL: CARGA DE IMAGEN Y HISTORIAL
+# --- INTERFAZ ---
 with st.sidebar:
-    st.header("🖼️ Imagen Base (Opcional)")
-    st.markdown("Sube una imagen para usarla como referencia.")
-    uploaded_file = st.file_uploader("Elige una imagen...", type=["jpg", "png", "jpeg"])
-
-    if uploaded_file is not None:
-        # Mostrar la imagen y guardar su nombre
-        st.image(uploaded_file, caption="Imagen cargada", use_column_width=True)
+    st.header("🧬 Mis Personajes")
+    
+    # NUEVO CREADOR RÁPIDO
+    with st.expander("Añadir Personaje Nuevo"):
+        new_name = st.text_input("Nombre")
+        new_desc = st.text_area("Descripción Visual")
+        if st.button("Guardar en Memoria"):
+            if new_name and new_desc:
+                st.session_state.characters[new_name] = translate_to_english(new_desc)
+                st.success("Guardado (Temporal)")
+    
+    st.markdown("---")
+    st.header("🖼️ Imagen Base")
+    uploaded_file = st.file_uploader("Sube referencia...", type=["jpg", "png"])
+    if uploaded_file:
         st.session_state.uploaded_image_name = uploaded_file.name
-        st.success(f"✅ Imagen '{uploaded_file.name}' lista para usar.")
+        st.image(uploaded_file, caption="Referencia Activa")
     else:
         st.session_state.uploaded_image_name = None
 
     st.markdown("---")
     st.header("📜 Historial")
     for i, item in enumerate(reversed(st.session_state.history[:5])):
-        st.text_area(f"Prompt #{len(st.session_state.history)-i}", item, height=80, key=f"hist_{i}")
+        st.text_area(f"Prompt {len(st.session_state.history)-i}", item, height=80, key=f"h{i}")
 
-# AREA PRINCIPAL
-st.title("🎬 Grok Video Builder Pro")
+# PANEL PRINCIPAL
+st.title("🎬 Grok Video Builder")
 
-# Detectar el modo automáticamente
-modo_imagen = st.session_state.uploaded_image_name is not None
-
-if modo_imagen:
-    # --- MODO IMAGEN A VIDEO ---
-    st.info(f"🛠️ **Modo Activado: Imagen a Vídeo** (Usando '{st.session_state.uploaded_image_name}')")
-    st.markdown("Define cómo quieres que cobre vida tu imagen.")
-
-    col_i1, col_i2 = st.columns(2)
-    with col_i1:
-        st.subheader("1. Qué Mantener (Preservar)")
-        keep_subject_in = st.checkbox("Mantener apariencia exacta del sujeto/persona", value=True)
-        keep_bg_in = st.checkbox("Mantener el fondo y la composición original", value=True)
-        st.caption("Si desmarcas esto, FLUX tendrá libertad para cambiarlo.")
-
-    with col_i2:
-        st.subheader("2. Qué Animar (Acción)")
-        # Aquí pedimos verbos de acción directa
-        img_action_in = st.text_area("Describe el movimiento EN la imagen", placeholder="Ej: Haz que la persona sonría lentamente y parpadee. Que el viento mueva su pelo y las hojas del fondo.", height=100)
-
-    st.subheader("3. Técnica Adicional")
-    col_i3, col_i4 = st.columns(2)
-    with col_i3:
-         camera_img_in = st.selectbox("Movimiento de Cámara", ["Static shot (Fijo)", "Slow zoom in", "Slow pan right", "Handheld drift"], index=0)
-    with col_i4:
-         audio_img_in = st.text_input("Audio / Ambiente Sonoro", placeholder="Ej: sonido de olas suaves y gaviotas")
-
-    st.markdown("---")
-    if st.button("✨ GENERAR PROMPT DE VÍDEO", type="primary"):
-        with st.spinner("Creando prompt basado en imagen..."):
-            builder = GrokVideoPromptBuilder()
-            builder.activate_img2video(st.session_state.uploaded_image_name)
-            
-            # Configurar campos de preservación
-            builder.set_field('keep_subject', keep_subject_in)
-            builder.set_field('keep_bg', keep_bg_in)
-            
-            # Traducir y configurar campos de acción y técnica
-            builder.set_field('img_action', translate_to_english(img_action_in))
-            builder.set_field('camera', camera_img_in.split(" (")[0]) # Limpiar el texto del selector
-            builder.set_field('audio', translate_to_english(audio_img_in))
-            
-            final_prompt = builder.build()
-            st.session_state.history.append(final_prompt)
-            st.success("¡Prompt de Imagen a Vídeo Listo!")
-            st.code(final_prompt, language="text")
-            st.caption("Copia este texto. En Grok, sube tu imagen primero y luego pega este prompt.")
-
-else:
-    # --- MODO TEXTO A VIDEO (El clásico) ---
-    st.markdown("Modo: **Texto a Vídeo**. (Sube una imagen en la barra lateral para cambiar de modo).")
-    if st.button("🎲 Sorpréndeme (Texto)", type="secondary", on_click=randomize_text_fields): pass
-    
+if st.session_state.uploaded_image_name:
+    st.info(f"Modo Imagen: {st.session_state.uploaded_image_name}")
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("La Escena")
-        style_in = st.selectbox("Estilo Visual", DEMO_STYLES, key="k_style")
-        subject_in = st.text_input("Sujeto", placeholder="Ej: Un robot", key="k_subject")
-        details_in = st.text_input("Detalles", placeholder="Ej: oxidado", key="k_details")
-        action_in = st.text_input("Acción (gerundio)", placeholder="Ej: corriendo", key="k_action")
+        keep_s = st.checkbox("Mantener Sujeto", True)
+        keep_b = st.checkbox("Mantener Fondo", True)
     with col2:
-        st.subheader("Técnica")
-        env_in = st.text_input("Entorno", placeholder="Ej: Marte", key="k_env")
-        light_in = st.text_input("Iluminación", placeholder="Ej: neón", key="k_light")
-        camera_in = st.selectbox("Cámara", DEMO_CAMERAS, key="k_camera")
-        audio_in = st.text_input("Audio", placeholder="Ej: viento", key="k_audio")
+        act_img = st.text_area("¿Qué movimiento quieres?", placeholder="Ej: Que sonría")
+    
+    cam_img = st.selectbox("Cámara", DEMO_CAMERAS)
+    aud_img = st.text_input("Audio")
 
-    st.markdown("---")
-    if st.button("✨ TRADUCIR Y GENERAR (TEXTO)", type="primary"):
-        with st.spinner("Procesando..."):
-            builder = GrokVideoPromptBuilder()
-            builder.set_field('style', translate_to_english(style_in))
-            builder.set_field('subject', translate_to_english(subject_in))
-            builder.set_field('details', translate_to_english(details_in))
-            builder.set_field('action', translate_to_english(action_in))
-            builder.set_field('env', translate_to_english(env_in))
-            builder.set_field('light', translate_to_english(light_in))
-            builder.set_field('camera', camera_in)
-            builder.set_field('audio', translate_to_english(audio_in))
-            
-            final_prompt = builder.build()
-            st.session_state.history.append(final_prompt)
-            st.success("¡Prompt de Texto a Vídeo Listo!")
-            st.code(final_prompt, language="text")
+    if st.button("✨ GENERAR VIDEO-PROMPT"):
+        b = GrokVideoPromptBuilder()
+        b.activate_img2video(st.session_state.uploaded_image_name)
+        b.set_field('keep_subject', keep_s)
+        b.set_field('keep_bg', keep_b)
+        b.set_field('img_action', translate_to_english(act_img))
+        b.set_field('camera', cam_img)
+        b.set_field('audio', translate_to_english(aud_img))
+        res = b.build()
+        st.session_state.history.append(res)
+        st.code(res, language='text')
+
+else:
+    st.info("Modo Historia (Texto / Personajes)")
+    char_sel = st.selectbox("Elige Actor:", list(st.session_state.characters.keys()))
+    dna = st.session_state.characters[char_sel]
+
+    if dna:
+        st.success(f"Actuando: {char_sel}")
+        final_sub = dna
+    else:
+        sub_raw = st.text_input("Sujeto")
+        final_sub = translate_to_english(sub_raw)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        sty = st.selectbox("Estilo", DEMO_STYLES)
+        act = st.text_input("Acción", placeholder="Ej: corriendo")
+        det = st.text_input("Detalles Extra", placeholder="Ej: ropa mojada")
+    with c2:
+        env = st.text_input("Entorno", placeholder="Ej: bosque")
+        lit = st.text_input("Luz", placeholder="Ej: atardecer")
+        cam = st.selectbox("Cámara", DEMO_CAMERAS)
+        aud = st.text_input("Audio")
+
+    if st.button("✨ GENERAR PROMPT"):
+        b = GrokVideoPromptBuilder()
+        b.set_field('style', translate_to_english(sty))
+        b.set_field('subject', final_sub)
+        b.set_field('details', translate_to_english(det))
+        b.set_field('action', translate_to_english(act))
+        b.set_field('env', translate_to_english(env))
+        b.set_field('light', translate_to_english(lit))
+        b.set_field('camera', cam)
+        b.set_field('audio', translate_to_english(aud))
+        res = b.build()
+        st.session_state.history.append(res)
+        st.code(res, language='text')
