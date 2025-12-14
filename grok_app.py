@@ -35,7 +35,7 @@ def translate_to_english(text):
             return text
     return ""
 
-# --- LISTAS DE OPCIONES (FORMATO SEGURO) ---
+# --- LISTAS DE OPCIONES ---
 DEMO_STYLES = [
     "Photorealistic 8k",
     "Anime / Manga",
@@ -70,17 +70,11 @@ DEMO_ASPECT_RATIOS = [
 
 DEMO_CAMERAS = [
     "Static",
-    "Zoom In",
-    "Zoom Out",
-    "Dolly In",
-    "Dolly Out",
-    "Truck Left",
-    "Truck Right",
-    "Pedestal Up",
-    "Pedestal Down",
-    "Pan",
-    "Tilt",
-    "Orbit",
+    "Zoom In", "Zoom Out",
+    "Dolly In", "Dolly Out",
+    "Truck Left", "Truck Right",
+    "Pedestal Up", "Pedestal Down",
+    "Pan", "Tilt", "Orbit",
     "Handheld / Shake",
     "FPV Drone"
 ]
@@ -265,11 +259,13 @@ st.markdown("---")
 if st.session_state.generated_output:
     st.subheader("📝 Tu Prompt Final")
     
+    # 1. Caja de texto para editar (Aquí NO está el botón de copia, solo para escribir)
     edited_prompt = st.text_area(
-        "Edita o corrige el texto aquí antes de copiar:", 
+        "Edita o corrige el texto aquí si es necesario:", 
         value=st.session_state.generated_output, 
         height=200
     )
     
-    st.caption("Copia el código final aquí:")
+    # 2. Caja de CÓDIGO (Aquí SÍ aparece el icono de las dos hojitas al pasar el ratón)
+    st.caption("👇 Haz clic en el icono de la esquina derecha para copiar:")
     st.code(edited_prompt, language="text")
