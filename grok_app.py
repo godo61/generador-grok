@@ -38,7 +38,7 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- DATOS MAESTROS (FACTORY DEFAULTS) ---
+# --- DATOS MAESTROS ---
 DEFAULT_CHARACTERS = {
     "TON (Base - Solo cuerpo)": "A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality. High cheekbones, sharp geometric jawline, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.",
     "FREYA (Base - Solo cuerpo)": "A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture. Heavy dark brunette hair.",
@@ -58,7 +58,7 @@ if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_imag
 if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 
-# Auto-Reparación de Memoria
+# Auto-Reparación
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 else:
     for k, v in DEFAULT_CHARACTERS.items():
@@ -130,10 +130,8 @@ class GrokVideoPromptBuilder:
         audio_parts = []
         m_val = p.get('audio_mood_custom') if p.get('audio_mood_custom') else p.get('audio_mood')
         if m_val and "No Music" not in m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
-        
         e_val = p.get('audio_env_custom') if p.get('audio_env_custom') else p.get('audio_env')
         if e_val and "No Background" not in e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
-        
         s_val = p.get('audio_sfx_custom') if p.get('audio_sfx_custom') else p.get('audio_sfx')
         if s_val and "None" not in s_val and "Custom" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
         final_audio = ". ".join(audio_parts)
@@ -156,8 +154,14 @@ class GrokVideoPromptBuilder:
             if p.get('keep_subject'): keep.append("Subject")
             if p.get('keep_bg'): keep.append("Background")
             if keep: segments.append(f"Maintain: {', '.join(keep)}.")
+            
+            # --- NUEVA LÓGICA IMG2VID ---
+            # Si se seleccionó "Sujeto de la Foto", no inyectamos descripción de texto del sujeto.
+            # Solo acción y entorno.
             if p.get('img_action'): segments.append(f"Action: {p['img_action']}")
+            
         else:
+            # Modo Texto Puro
             base = p.get('subject', '')
             prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
             if prop_val and "None" not in prop_val and "Custom" not in prop_val: base += f", holding/using {prop_val}"
@@ -179,7 +183,7 @@ class GrokVideoPromptBuilder:
 
         return re.sub(' +', ' ', " ".join(segments)).strip()
 
-# --- INTERFAZ BARRA LATERAL ---
+# --- INTERFAZ ---
 with st.sidebar:
     st.title("⚙️ Config")
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
@@ -227,12 +231,7 @@ with st.sidebar:
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio")
 
-# --- GUÍA DE AYUDA (COMPLETA) ---
-with st.expander("📘 GUÍA: Flujo de Trabajo & Prompts Maestros", expanded=False):
-    st.markdown("""
-    ### 🧬 1. Cómo extraer el "ADN" (Descripción Maestra)
-    Copia este prompt y pégalo en **ChatGPT-4o, Claude 3.5 Sonnet o Midjourney** junto con tu foto de referencia para obtener la descripción técnica perfecta:
-    """)
+with st.expander("📘 GUÍA & PROMPT MAESTRO (ADN)", expanded=False):
     st.code("""
     # ROLE: Expert Lead Character Artist & VFX Supervisor.
     # TASK: Analyze the image and generate a "Visual DNA" description (Subject ONLY).
@@ -244,30 +243,6 @@ with st.expander("📘 GUÍA: Flujo de Trabajo & Prompts Maestros", expanded=Fal
     4. STYLE: Lighting type (Rembrandt/volumetric), camera lens (85mm), render style.
     # NO: Clothing or Background (unless inseparable).
     """, language="text")
-    
-    st.markdown("""
-    ---
-    ### 🚀 2. Flujo de Trabajo del Director
-    1.  **PRE-PRODUCCIÓN (Barra Lateral):** * Usa el *Prompt Maestro* para extraer el ADN de tus fotos.
-        * Guarda tus Actores y Objetos en el **Banco de ADN**.
-        * *Opcional:* Sube una imagen de referencia (Start Frame) si vas a animar una foto.
-    
-    2.  **RODAJE (Panel Principal):**
-        * **Historia:** Elige Actor (ADN) + Objeto (ADN/Custom) + Vestuario.
-        * **Física:** ¿Estás en Marte? ¿Bajo el agua? Activa la simulación correcta.
-        * **Visual/Técnica:** Define el entorno, la luz y la cámara.
-    
-    3.  **POST-PRODUCCIÓN (Audio):**
-        * Define la atmósfera sonora y SFX.
-        * Usa el módulo **SUNO AI** (abajo del todo) si necesitas música.
-    
-    4.  **EXPORTACIÓN:**
-        * Copia el Prompt Final y úsalo en **Runway Gen-3, Luma Dream Machine o Kling**.
-    
-    ---
-    ### ⚠️ 3. Solución de Problemas
-    * **Botón "Restaurar Fábrica":** (Menú Lateral) Púlsalo si has borrado personajes por error o la app se comporta extraño. Reinicia todo a su estado original.
-    """)
 
 # PESTAÑAS
 t1, t2, t3, t4, t5 = st.tabs(["📝 Historia", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
@@ -279,16 +254,31 @@ mus_vid, env_vid, sfx_vid = "", "", ""
 with t1:
     c_a, c_b = st.columns(2)
     with c_a:
-        char_sel = st.selectbox("Actor", list(st.session_state.characters.keys()))
-        final_sub = st.session_state.characters[char_sel]
+        st.markdown("##### 🎭 Casting")
+        # --- LÓGICA INTELIGENTE DE ACTOR ---
+        # Si hay imagen subida, añadimos la opción "Sujeto de la Foto" al principio
+        char_options = list(st.session_state.characters.keys())
+        if st.session_state.uploaded_image_name:
+            char_options.insert(0, "📷 Sujeto de la Foto (Usar Referencia)")
+        
+        char_sel = st.selectbox("Actor", char_options)
+        
+        # Si elige la foto, el "Sujeto" se queda vacío para no interferir con la imagen
+        if "📷 Sujeto de la Foto" in char_sel:
+            final_sub = "" 
+        else:
+            final_sub = st.session_state.characters[char_sel]
+            
     with c_b:
+        st.markdown("##### 🎒 Utilería")
         all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
         p_sel = st.selectbox("Objeto", all_props)
         if p_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[p_sel]
         elif "Custom" in p_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
         elif "None" not in p_sel: final_prop = p_sel
 
-    act_raw = st.text_input("Acción", placeholder="Ej: flotando hacia la cámara")
+    st.markdown("##### 🎬 Acción")
+    act_raw = st.text_input("Acción", placeholder="Ej: riendo con sus amigos en el bar")
     final_act = translate_to_english(act_raw)
     det_raw = st.text_input("Detalles")
 
