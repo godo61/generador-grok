@@ -38,31 +38,42 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- MEMORIA (ADN DE ACTIVOS) ---
+# --- DEFINICIÓN DE DATOS MAESTROS (FACTORY DEFAULTS) ---
+DEFAULT_CHARACTERS = {
+    "TON (Base - Solo cuerpo)": "A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality. High cheekbones, sharp geometric jawline, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.",
+    "FREYA (Base - Solo cuerpo)": "A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture. Heavy dark brunette hair.",
+    "TON (Guitarra)": "A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique. He is attired in a charcoal-grey heavyweight cotton t-shirt and raw selvedge denim jeans. He is holding and playing a specific electric guitar model, adopting a passionate musician pose, fingers on the fretboard. Cinematic moody lighting.",
+    "TON (Micro)": "A hyper-realistic, medium-shot portrait of a striking male figure. He is holding a vintage microphone close to his mouth, singing passionately with eyes slightly closed, performing on stage. Atmosphere is volumetric and moody.",
+    "FREYA (Kayak)": "A hyper-realistic, cinematic medium shot of a 25-year-old female survivor. She is completely drenched, wearing a futuristic 'Aquatic Warcore' tactical wetsuit. She is paddling a Hyper-realistic expedition sea kayak, model Point 65 Freya 18, in a turbulent marine environment."
+}
+
+DEFAULT_PROPS = {
+    "Guitarra de Ton": "A vintage 1959 sunburst electric guitar, road-worn finish, rusted hardware, missing high-E string.",
+    "Kayak de Freya": "A high-tech carbon fiber expedition kayak, matte black hull with red safety stripes, scratched and battered.",
+    "Mascota (Robo-Dog)": "A quadruped Boston Dynamics style robot dog, yellow casing, tactical camera sensors for head."
+}
+
+# --- INICIALIZACIÓN DE MEMORIA INTELIGENTE ---
 if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 
-# ADN: PERSONAJES (RESTAURADOS TODOS)
+# 1. Cargar Personajes (Con Auto-Reparación)
 if 'characters' not in st.session_state:
-    st.session_state.characters = {
-        # --- PRESETS COMPLETOS (ANTIGUOS) ---
-        "TON (Guitarra)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique... (Full description) ... He is holding and playing a specific electric guitar model, adopting a passionate musician pose, fingers on the fretboard.""",
-        "TON (Micro)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique... (Full description) ... He is holding a vintage microphone close to his mouth, singing passionately with eyes slightly closed, performing on stage.""",
-        "FREYA (Kayak)": """A hyper-realistic, cinematic medium shot of a 25-year-old female survivor with a statuesque, athletic 170cm and 60kg physique... (Full description) ... She is paddling a Hyper-realistic expedition sea kayak, model Point 65 Freya 18.""",
-        
-        # --- BASES FLEXIBLES (NUEVOS) ---
-        "TON (Base - Solo cuerpo)": """A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality and lean muscularity. High cheekbones, sharp geometric jawline, faint skin porosity, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.""",
-        "FREYA (Base - Solo cuerpo)": """A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture, visible pores. Heavy dark brunette hair."""
-    }
+    st.session_state.characters = DEFAULT_CHARACTERS.copy()
+else:
+    # Chequeo de integridad: Si faltan los clásicos, los añadimos
+    for name, desc in DEFAULT_CHARACTERS.items():
+        if name not in st.session_state.characters:
+            st.session_state.characters[name] = desc
 
-# ADN: OBJETOS
+# 2. Cargar Objetos (Con Auto-Reparación)
 if 'custom_props' not in st.session_state:
-    st.session_state.custom_props = {
-        "Guitarra de Ton": "A vintage 1959 sunburst electric guitar, road-worn finish, rusted hardware, missing high-E string.",
-        "Kayak de Freya": "A high-tech carbon fiber expedition kayak, matte black hull with red safety stripes, scratched and battered.",
-        "Mascota (Robo-Dog)": "A quadruped Boston Dynamics style robot dog, yellow casing, tactical camera sensors for head."
-    }
+    st.session_state.custom_props = DEFAULT_PROPS.copy()
+else:
+    for name, desc in DEFAULT_PROPS.items():
+        if name not in st.session_state.custom_props:
+            st.session_state.custom_props[name] = desc
 
 # --- FUNCIONES ---
 def translate_to_english(text):
@@ -85,16 +96,13 @@ DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)",
 DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating"]
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Carbon Fiber Kayak Paddle", "🎸 Electric Guitar", "🎤 Vintage Microphone", "🔫 Sci-Fi Blaster", "📱 Holographic Datapad", "🧪 Glowing Vial", "☕ Coffee Cup"]
 
-# AUDIO LISTS
 DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence", "✏️ Custom..."]
 DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
 DEMO_SFX_COMMON = ["None", "Thrusters", "Water splashes", "Breathing in helmet", "Radio beeps", "Footsteps", "✏️ Custom..."]
 
-# SUNO LISTS
 SUNO_STYLES = ["Cinematic Score", "Cyberpunk / Synthwave", "Epic Orchestral", "Lo-Fi Hip Hop", "Heavy Metal", "Tribal Percussion", "Ambient Space Drone"]
 SUNO_STRUCTURES = ["Intro (Short)", "Full Loop", "Outro / Fade out", "Build-up", "Drop"]
 
-# FÍSICA
 PHYSICS_LOGIC = {
     "Neutral": [],
     "🌌 Space (Zero-G)": ["Zero-gravity floating", "No air resistance", "Stark lighting", "Vacuum silence"],
@@ -155,7 +163,6 @@ class GrokVideoPromptBuilder:
         else:
             base = p.get('subject', '')
             
-            # Objetos Custom (ADN) o Genericos
             prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
             if prop_val and "None" not in prop_val and "Custom" not in prop_val:
                 base += f", holding/using {prop_val}"
@@ -188,8 +195,14 @@ with st.sidebar:
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
     apply_custom_styles(is_dark)
     
+    # BOTÓN DE PÁNICO (RESETEO)
+    if st.button("🔄 Restaurar Fábrica"):
+        st.session_state.characters = DEFAULT_CHARACTERS.copy()
+        st.session_state.custom_props = DEFAULT_PROPS.copy()
+        st.success("¡Base de datos restaurada!")
+        st.rerun()
+
     st.header("🧬 Banco de ADN")
-    
     tab_char, tab_obj = st.tabs(["👤 Personajes", "🎸 Objetos"])
     
     with tab_char:
