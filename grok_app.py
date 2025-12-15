@@ -8,89 +8,54 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Grok Video Builder Pro", layout="wide", page_icon="🎬")
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
-# --- 🎨 ESTILOS CSS PERSONALIZADOS (UI MASTER) ---
+# --- ESTILOS CSS (UI MASTER) ---
 def apply_custom_styles(dark_mode=False):
-    # Colores base según el modo
     if dark_mode:
-        bg_color = "#0E1117"
-        text_color = "#FAFAFA"
-        tab_bg = "#262730"
-        tab_active_bg = "#0E1117"
-        tab_border = "#41444C"
+        bg_color, text_color, tab_bg, tab_active_bg, tab_border = "#0E1117", "#FAFAFA", "#262730", "#0E1117", "#41444C"
     else:
-        bg_color = "#FFFFFF"
-        text_color = "#31333F"
-        tab_bg = "#F0F2F6"
-        tab_active_bg = "#FFFFFF"
-        tab_border = "#E0E0E0"
+        bg_color, text_color, tab_bg, tab_active_bg, tab_border = "#FFFFFF", "#31333F", "#F0F2F6", "#FFFFFF", "#E0E0E0"
 
     st.markdown(f"""
         <style>
-        /* 1. FORZAR MODO CLARO/OSCURO GLOBALMENTE */
-        [data-testid="stAppViewContainer"] {{
-            background-color: {bg_color};
-            color: {text_color};
-        }}
-        [data-testid="stSidebar"] {{
-            background-color: {tab_bg};
-        }}
-        [data-testid="stHeader"] {{
-            background-color: {bg_color};
-        }}
-        
-        /* 2. ESTILO "SOLAPAS DE CUADERNO" (NOTEBOOK TABS) */
-        /* Contenedor de las pestañas */
-        div[data-baseweb="tab-list"] {{
-            gap: 8px; /* Espacio entre solapas */
-            border-bottom: 2px solid {tab_border};
-            padding-bottom: 0px;
-        }}
-
-        /* Cada solapa individual (inactiva) */
+        [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
+        [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
+        [data-testid="stHeader"] {{ background-color: {bg_color}; }}
+        div[data-baseweb="tab-list"] {{ gap: 8px; border-bottom: 2px solid {tab_border}; padding-bottom: 0px; }}
         button[data-baseweb="tab"] {{
-            background-color: {tab_bg} !important;
-            border-radius: 15px 15px 0px 0px !important; /* Redondeado superior */
-            border: 1px solid {tab_border} !important;
-            border-bottom: none !important;
-            padding: 10px 20px !important;
-            margin-bottom: -2px !important; /* Para solapar con la línea de abajo */
-            transition: all 0.3s ease;
-            color: {text_color} !important;
-            opacity: 0.7;
+            background-color: {tab_bg} !important; border-radius: 15px 15px 0px 0px !important;
+            border: 1px solid {tab_border} !important; border-bottom: none !important;
+            padding: 10px 20px !important; margin-bottom: -2px !important; color: {text_color} !important; opacity: 0.7;
         }}
-
-        /* Solapa Activa (Seleccionada) */
         button[data-baseweb="tab"][aria-selected="true"] {{
-            background-color: {tab_active_bg} !important;
-            border-top: 4px solid #FF4B4B !important; /* Acento rojo Streamlit */
-            border-left: 1px solid {tab_border} !important;
-            border-right: 1px solid {tab_border} !important;
-            font-weight: bold !important;
-            opacity: 1;
-            z-index: 99;
+            background-color: {tab_active_bg} !important; border-top: 4px solid #FF4B4B !important;
+            border-left: 1px solid {tab_border} !important; border-right: 1px solid {tab_border} !important;
+            font-weight: bold !important; opacity: 1;
         }}
-        
-        /* Ajuste de textos en modo oscuro */
-        p, h1, h2, h3, li {{
-            color: {text_color} !important;
-        }}
+        h1, h2, h3, p, li {{ color: {text_color} !important; }}
         </style>
     """, unsafe_allow_html=True)
 
-# --- MEMORIA ---
+# --- MEMORIA (ADN DE ACTIVOS) ---
 if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 
-# --- PERSONAJES ---
+# ADN: PERSONAJES
 if 'characters' not in st.session_state:
     st.session_state.characters = {
-        "Nada (Generar nuevo)": "",
-        "TON (Base)": """A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality and lean muscularity. High cheekbones, sharp geometric jawline, faint skin porosity, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.""",
-        "FREYA (Base)": """A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture, visible pores. Heavy dark brunette hair.""",
+        "TON (Base)": "A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality. High cheekbones, sharp geometric jawline, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut.",
+        "FREYA (Base)": "A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture. Heavy dark brunette hair."
+    }
+
+# ADN: OBJETOS (NUEVO)
+if 'custom_props' not in st.session_state:
+    st.session_state.custom_props = {
+        "Guitarra de Ton": "A vintage 1959 sunburst electric guitar, road-worn finish, rusted hardware, missing high-E string.",
+        "Kayak de Freya": "A high-tech carbon fiber expedition kayak, matte black hull with red safety stripes, scratched and battered.",
+        "Mascota (Robo-Dog)": "A quadruped Boston Dynamics style robot dog, yellow casing, tactical camera sensors for head."
     }
 
 # --- FUNCIONES ---
@@ -105,63 +70,33 @@ def translate_to_english(text):
             return text
     return text
 
-# --- INTERFAZ LATERAL (CONTROL DE TEMA) ---
-with st.sidebar:
-    st.title("⚙️ Configuración")
-    # INTERRUPTOR DE MODO OSCURO
-    is_dark_mode = st.toggle("🌙 Modo Oscuro", value=False)
-    
-    # APLICAR ESTILOS AHORA
-    apply_custom_styles(dark_mode=is_dark_mode)
-
-    st.markdown("---")
-    st.header("🧬 Mis Personajes")
-    with st.expander("Nuevo Personaje"):
-        new_name = st.text_input("Nombre")
-        new_desc = st.text_area("Descripción Base")
-        if st.button("Guardar"):
-            if new_name and new_desc:
-                st.session_state.characters[new_name] = translate_to_english(new_desc)
-                st.success("Guardado")
-    
-    st.markdown("---")
-    st.header("🖼️ Imagen Base")
-    uploaded_file = st.file_uploader("Sube referencia...", type=["jpg", "png"])
-    if uploaded_file:
-        st.session_state.uploaded_image_name = uploaded_file.name
-        st.image(uploaded_file, caption="Referencia Activa")
-    else:
-        st.session_state.uploaded_image_name = None
-    
-    st.markdown("---")
-    st.header("📜 Historial")
-    for i, item in enumerate(reversed(st.session_state.history[:5])):
-        st.text_area(f"Prompt {len(st.session_state.history)-i}", item, height=80, key=f"h{i}")
-
-# --- LISTAS DE ACTIVOS ---
-DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "IMAX Quality", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
-DEMO_ENVIRONMENTS = ["✏️ Custom / Other...", "🔴 Mars Surface (Red Planet)", "🛶 Dusi River (South Africa)", "🚀 International Space Station", "🌌 Deep Space Void", "🌲 Mystic Forest", "🏙️ Cyberpunk City", "🏜️ Sahara Desert", "🏟️ Olympic Stadium"]
-DEMO_WARDROBE = ["✏️ Custom / Other...", "👨‍🚀 NASA EVA Spacesuit", "👽 Sci-Fi Sleek Spacesuit", "🛶 Kayaking Gear", "🤿 Neoprene Wetsuit", "👕 Casual (T-shirt & Jeans)", "🤵 Formal Suit", "🎸 Rock Star Outfit"]
-DEMO_PROPS = ["None", "✏️ Custom / Other...", "🛶 Carbon Fiber Kayak Paddle", "🎸 Electric Guitar", "🎤 Vintage Microphone", "🔫 Sci-Fi Blaster", "📱 Holographic Datapad", "🧪 Glowing Vial", "☕ Coffee Cup"]
+# --- LISTAS FIJAS ---
+DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
+DEMO_ENVIRONMENTS = ["✏️ Custom...", "🔴 Mars Surface", "🛶 Dusi River", "🚀 ISS Interior", "🌌 Deep Space", "🌲 Mystic Forest", "🏙️ Cyberpunk City"]
+DEMO_WARDROBE = ["✏️ Custom...", "👨‍🚀 NASA Spacesuit", "👽 Sci-Fi Suit", "🛶 Kayak Gear", "🤿 Wetsuit", "👕 Casual", "🤵 Formal"]
 DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark", "Stark Space Sunlight"]
-DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)", "1:1 (Square)"]
-DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating Cam"]
-DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence (Space)", "✏️ Custom..."]
-DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
-DEMO_SFX_COMMON = ["None", "Thrusters firing", "Water splashing", "Paddle hitting water", "Breathing in helmet", "Radio comms beep", "Footsteps", "✏️ Custom..."]
+DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating"]
 
-# --- ⚛️ MOTOR DE FÍSICA ---
+# AUDIO LISTS
+DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence", "✏️ Custom..."]
+DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
+DEMO_SFX_COMMON = ["None", "Thrusters", "Water splashes", "Breathing in helmet", "Radio beeps", "Footsteps", "✏️ Custom..."]
+
+# SUNO LISTS
+SUNO_STYLES = ["Cinematic Score", "Cyberpunk / Synthwave", "Epic Orchestral", "Lo-Fi Hip Hop", "Heavy Metal", "Tribal Percussion", "Ambient Space Drone"]
+SUNO_STRUCTURES = ["Intro (Short)", "Full Loop", "Outro / Fade out", "Build-up", "Drop"]
+
+# FÍSICA
 PHYSICS_LOGIC = {
-    "Neutral / None": [],
-    "🌌 Space (Zero-G / Void)": ["Zero-gravity floating objects/hair", "No air resistance", "High contrast stark lighting", "Deep black shadows", "Vacuum silence atmosphere", "Floating dust particles"],
-    "🔴 Mars / Planetary (Low G)": ["Low gravity movement (Slow jumps)", "Red dust storms", "Haze and heat distortion", "Fine dust settling on surfaces", "Wind sweeping across barren terrain"],
-    "🌊 Water (Surface/River)": ["Turbulent muddy water flow", "White water rapids foam", "Hydrodynamic splashes", "Wet fabric adhesion", "Light refraction on ripples"],
-    "🤿 Underwater (Submerged)": ["Weightless suspension", "Caustics light patterns", "Rising bubbles", "Murky depth visibility", "Muffled movement"],
-    "🌬️ Air / Flight": ["High velocity wind drag", "Clouds passing rapidly", "Fabric fluttering violently", "Motion blur", "Aerodynamic trails"],
-    "❄️ Snow / Ice": ["Condensation breath", "Deep snow footprints", "Falling snow flakes", "Ice reflection", "Pale lighting"]
+    "Neutral": [],
+    "🌌 Space (Zero-G)": ["Zero-gravity floating", "No air resistance", "Stark lighting", "Vacuum silence"],
+    "🔴 Mars (Low G)": ["Low gravity movement", "Red dust storms", "Heat distortion", "Dust settling"],
+    "🌊 Water (River)": ["Turbulent flow", "White water foam", "Wet fabric adhesion", "Reflections"],
+    "🤿 Underwater": ["Weightless suspension", "Caustics", "Rising bubbles", "Murky visibility"],
+    "🌬️ Air / Flight": ["High wind drag", "Fabric fluttering", "Motion blur", "Aerodynamic trails"]
 }
 
-# --- MOTOR DE PROMPTS ---
+# --- CLASE BUILDER ---
 class GrokVideoPromptBuilder:
     def __init__(self):
         self.parts = {}
@@ -181,223 +116,226 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
-        # --- PROCESAMIENTO CUSTOM ---
-        wardrobe_txt = p.get('wardrobe_custom') if p.get('wardrobe_custom') else (p['wardrobe'].split('(')[0].strip() if p.get('wardrobe') and "Custom" not in p['wardrobe'] else "")
-        props_txt = p.get('props_custom') if p.get('props_custom') else (p['props'].split('(')[0].strip() if p.get('props') and "None" not in p['props'] and "Custom" not in p['props'] else "")
-        env_txt = p.get('env_custom') if p.get('env_custom') else (p['env'].split('(')[0].strip() if p.get('env') and "Custom" not in p['env'] else "")
-
-        # --- AUDIO ---
+        # Audio Logic
         audio_parts = []
         m_val = p.get('audio_mood_custom') if p.get('audio_mood_custom') else p.get('audio_mood')
         if m_val and "No Music" not in m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
-
+        
         e_val = p.get('audio_env_custom') if p.get('audio_env_custom') else p.get('audio_env')
         if e_val and "No Background" not in e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
-
-        s_val = p.get('audio_sfx_custom') if p.get('audio_sfx_custom') else p.get('audio_sfx')
-        if s_val and "None" not in s_val and "Custom" not in s_val:
-            clean_sfx = s_val.split('(')[0].strip()
-            audio_parts.append(f"SFX: {clean_sfx}")
         
+        s_val = p.get('audio_sfx_custom') if p.get('audio_sfx_custom') else p.get('audio_sfx')
+        if s_val and "None" not in s_val and "Custom" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
         final_audio = ". ".join(audio_parts)
 
-        # --- FÍSICA ---
+        # Physics
         physics_prompt = ""
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
-            medium = p['physics_medium'].split('(')[0].strip()
-            details = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
-            if details: physics_prompt = f"Physics Engine: {medium} simulation ({', '.join(details)})"
+            med = p['physics_medium'].split('(')[0].strip()
+            dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
+            if dets: physics_prompt = f"Physics: {med} ({', '.join(dets)})"
 
-        # --- CONSTRUCCIÓN ---
+        # Build Segments
         segments = []
         if self.is_img2video:
-            segments.append(f"Image-to-Video based on '{self.image_filename}'.")
+            segments.append(f"Img2Vid: '{self.image_filename}'.")
             keep = []
-            if p.get('keep_subject'): keep.append("Main Subject")
+            if p.get('keep_subject'): keep.append("Subject")
             if p.get('keep_bg'): keep.append("Background")
             if keep: segments.append(f"Maintain: {', '.join(keep)}.")
             if p.get('img_action'): segments.append(f"Action: {p['img_action']}")
         else:
-            base_subj = p.get('subject', '')
-            if wardrobe_txt: base_subj += f", wearing {wardrobe_txt}"
-            if props_txt: base_subj += f", holding/using {props_txt}"
-            if p.get('details'): base_subj += f", {p['details']}"
-
-            visual_block = []
-            if base_subj: visual_block.append(base_subj)
-            if p.get('action'): visual_block.append(f"Action: {p['action']}")
-            if env_txt: visual_block.append(f"Location: {env_txt}")
+            base = p.get('subject', '')
             
-            scene = ". ".join(visual_block)
-            if scene: segments.append(scene + ".")
+            # Objetos Custom (ADN) o Genericos
+            prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
+            if prop_val and "None" not in prop_val and "Custom" not in prop_val:
+                base += f", holding/using {prop_val}"
+                
+            ward_val = p.get('wardrobe_custom') if p.get('wardrobe_custom') else p.get('wardrobe')
+            if ward_val and "Custom" not in ward_val:
+                base += f", wearing {ward_val}"
+            
+            if p.get('details'): base += f", {p['details']}"
+            
+            segments.append(base)
+            if p.get('action'): segments.append(f"Action: {p['action']}")
+            
+            env_val = p.get('env_custom') if p.get('env_custom') else p.get('env')
+            if env_val and "Custom" not in env_val: segments.append(f"Loc: {env_val}")
+            
             if p.get('style'): segments.append(f"Style: {p['style']}.")
 
-        if p.get('light'): segments.append(f"Lighting: {p['light']}.")
-        if p.get('camera'): segments.append(f"Camera: {p['camera']}.")
+        if p.get('light'): segments.append(f"Light: {p['light']}.")
+        if p.get('camera'): segments.append(f"Cam: {p['camera']}.")
         if physics_prompt: segments.append(physics_prompt + ".")
         if final_audio: segments.append(f"Audio: {final_audio}.")
         if p.get('ar'): segments.append(f"--ar {p['ar'].split(' ')[0]}")
 
         return re.sub(' +', ' ', " ".join(segments)).strip()
 
-# PANEL PRINCIPAL
-st.title("🎬 Grok Video Builder")
-
-if st.session_state.uploaded_image_name:
-    # MODO IMAGEN
-    st.info(f"Modo Imagen: {st.session_state.uploaded_image_name}")
-    t1, t2, t3, t4 = st.tabs(["🖼️ Acción", "⚛️ Física", "🎥 Técnica", "🎵 Audio"])
+# --- INTERFAZ BARRA LATERAL (ADN) ---
+with st.sidebar:
+    st.title("⚙️ Config")
+    is_dark = st.toggle("🌙 Modo Oscuro", value=True)
+    apply_custom_styles(is_dark)
     
-    with t1:
-        c1, c2 = st.columns(2)
-        with c1:
-            keep_s = st.checkbox("Mantener Sujeto", True)
-            keep_b = st.checkbox("Mantener Fondo", True)
-        with c2: act_img = st.text_area("Acción", placeholder="Ej: flotando en gravedad cero")
-
-    with t2:
-        phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="pm_i")
-        phy_det = st.multiselect("Efectos", PHYSICS_LOGIC[phy_med], key="pd_i")
-
-    with t3:
-        c1, c2, c3 = st.columns(3)
-        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_i")
-        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_i")
-        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_i")
-
-    with t4:
-        c1, c2, c3 = st.columns(3)
-        with c1: 
-            m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_i")
-            mus_custom_val = translate_to_english(st.text_input("Cuál:", key="mc_i")) if "Custom" in m_ch else ""
-        with c2:
-            e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_i")
-            env_custom_val = translate_to_english(st.text_input("Cuál:", key="ec_i")) if "Custom" in e_ch else ""
-        with c3:
-            s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_i")
-            sfx_custom_val = translate_to_english(st.text_input("Cuál:", key="sc_i")) if "Custom" in s_ch else ""
-
-    if st.button("✨ GENERAR (IMG)", type="primary"):
-        with st.spinner("Creando..."):
-            try:
-                b = GrokVideoPromptBuilder()
-                b.activate_img2video(st.session_state.uploaded_image_name)
-                b.set_field('keep_subject', keep_s)
-                b.set_field('keep_bg', keep_b)
-                b.set_field('img_action', translate_to_english(act_img))
-                b.set_field('physics_medium', phy_med)
-                b.set_field('physics_details', phy_det)
-                b.set_field('camera', cam)
-                b.set_field('light', lit)
-                b.set_field('ar', ar)
-                
-                b.set_field('audio_mood', m_ch)
-                b.set_field('audio_mood_custom', mus_custom_val)
-                b.set_field('audio_env', e_ch)
-                b.set_field('audio_env_custom', env_custom_val)
-                b.set_field('audio_sfx', s_ch)
-                b.set_field('audio_sfx_custom', sfx_custom_val)
-                
-                res = b.build()
-                st.session_state.generated_output = res
-                st.session_state.history.append(res)
-            except Exception as e: st.error(str(e))
-
-else:
-    # MODO TEXTO / HISTORIA
-    t1, t2, t3, t4, t5 = st.tabs(["📝 Historia & Assets", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+    st.header("🧬 Banco de ADN")
     
-    # Declaramos variables custom vacías
-    ward_custom_val = ""
-    props_custom_val = ""
-    env_custom_txt = ""
+    tab_char, tab_obj = st.tabs(["👤 Personajes", "🎸 Objetos"])
     
-    with t1:
-        st.subheader("Protagonista")
-        char_sel = st.selectbox("Actor Base", list(st.session_state.characters.keys()))
-        final_sub = st.session_state.characters[char_sel] if st.session_state.characters[char_sel] else translate_to_english(st.text_input("Sujeto Base"))
+    with tab_char:
+        c_name = st.text_input("Nombre Actor")
+        c_desc = st.text_area("Descripción Actor")
+        if st.button("Guardar Actor"):
+            if c_name and c_desc:
+                st.session_state.characters[c_name] = translate_to_english(c_desc)
+                st.success("Actor Guardado")
+                st.rerun()
+
+    with tab_obj:
+        o_name = st.text_input("Nombre Objeto (Ej: Guitarra Vieja)")
+        o_desc = st.text_area("Descripción Visual Objeto")
+        if st.button("Guardar Objeto"):
+            if o_name and o_desc:
+                st.session_state.custom_props[o_name] = translate_to_english(o_desc)
+                st.success("Objeto Guardado")
+                st.rerun()
+
+    st.markdown("---")
+    st.header("🖼️ Imagen")
+    uploaded_file = st.file_uploader("Referencia", type=["jpg", "png"])
+    if uploaded_file:
+        st.session_state.uploaded_image_name = uploaded_file.name
+        st.image(uploaded_file, caption="Ref Activa")
+    else:
+        st.session_state.uploaded_image_name = None
+
+# --- PANEL PRINCIPAL ---
+st.title("🎬 Grok Production Studio")
+
+# PESTAÑAS PRINCIPALES
+t1, t2, t3, t4, t5 = st.tabs(["📝 Historia & Assets", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+
+# VARIABLES TEMPORALES
+final_sub = ""
+final_act = ""
+final_env = ""
+final_ward = ""
+final_prop = ""
+
+with t1:
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("##### 🎭 Casting")
+        # Selector de Personajes (ADN)
+        char_keys = list(st.session_state.characters.keys())
+        char_sel = st.selectbox("Actor", char_keys)
+        final_sub = st.session_state.characters[char_sel]
         
-        st.subheader("Vestuario y Atrezzo (Assets)")
-        c1, c2 = st.columns(2)
-        with c1:
-            w_ch = st.selectbox("Vestuario (Wardrobe)", DEMO_WARDROBE)
-            if "Custom" in w_ch:
-                ward_custom_val = translate_to_english(st.text_input("Describe Ropa", key="wc_t"))
-        with c2:
-            p_ch = st.selectbox("Objeto (Prop)", DEMO_PROPS)
-            if "Custom" in p_ch:
-                props_custom_val = translate_to_english(st.text_input("Describe Objeto", key="pc_t"))
+    with col_b:
+        st.markdown("##### 🎒 Utilería (Props)")
+        # Selector Híbrido: Lista Demo + Objetos Guardados (ADN)
+        prop_options = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
+        p_sel = st.selectbox("Objeto en mano", prop_options)
+        
+        if p_sel in st.session_state.custom_props:
+            final_prop = st.session_state.custom_props[p_sel] # Usar descripción guardada
+        elif "Custom" in p_sel:
+            final_prop = translate_to_english(st.text_input("Describe objeto nuevo", key="new_prop"))
+        elif "None" not in p_sel:
+            final_prop = p_sel
 
-        st.subheader("Acción")
-        act = st.text_input("¿Qué está haciendo?", placeholder="Ej: caminando hacia el cohete")
-        det = st.text_input("Detalles extra")
+    st.markdown("##### 🎬 Acción")
+    act_raw = st.text_input("¿Qué ocurre?", placeholder="Ej: tocando la guitarra en el espacio")
+    final_act = translate_to_english(act_raw)
+    det_raw = st.text_input("Detalles extra")
 
-    with t2:
-        phy_med = st.selectbox("Entorno Físico", list(PHYSICS_LOGIC.keys()), key="pm_t")
-        phy_det = st.multiselect("Efectos Físicos", PHYSICS_LOGIC[phy_med], key="pd_t")
+with t2:
+    phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()))
+    phy_det = st.multiselect("Efectos Activos", PHYSICS_LOGIC[phy_med])
 
-    with t3:
-        c1, c2 = st.columns(2)
-        with c1: sty = st.selectbox("Estilo", DEMO_STYLES)
-        with c2:
-            env_ch = st.selectbox("Lugar / Entorno", DEMO_ENVIRONMENTS)
-            if "Custom" in env_ch:
-                env_custom_txt = translate_to_english(st.text_input("Describe Lugar", key="ec_txt"))
+with t3:
+    c1, c2 = st.columns(2)
+    with c1:
+        sty = st.selectbox("Estilo", DEMO_STYLES)
+        ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE)
+        if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom"))
+        else: final_ward = ward_sel
+    with c2:
+        env_sel = st.selectbox("Lugar", DEMO_ENVIRONMENTS)
+        if "Custom" in env_sel: final_env = translate_to_english(st.text_input("Lugar Custom"))
+        else: final_env = env_sel
 
-    with t4:
-        c1, c2, c3 = st.columns(3)
-        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_t")
-        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_t")
-        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_t")
+with t4:
+    c1, c2, c3 = st.columns(3)
+    with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS)
+    with c2: lit = st.selectbox("Luz", DEMO_LIGHTING)
+    with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
 
-    with t5:
-        c1, c2, c3 = st.columns(3)
-        with c1: 
-            m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_t")
-            mus_custom_txt = translate_to_english(st.text_input("Cuál:", key="mc_t")) if "Custom" in m_ch else ""
-        with c2:
-            e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_t")
-            env_custom_txt_aud = translate_to_english(st.text_input("Cuál:", key="aec_t")) if "Custom" in e_ch else ""
-        with c3:
-            s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_t")
-            sfx_custom_txt = translate_to_english(st.text_input("Cuál:", key="sc_t")) if "Custom" in s_ch else ""
+with t5:
+    c1, c2, c3 = st.columns(3)
+    with c1: 
+        mus_sel = st.selectbox("Música (Video)", DEMO_AUDIO_MOOD)
+        mus_vid = translate_to_english(st.text_input("Música Custom")) if "Custom" in mus_sel else mus_sel
+    with c2:
+        env_aud_sel = st.selectbox("Ambiente (Video)", DEMO_AUDIO_ENV)
+        env_vid = translate_to_english(st.text_input("Ambiente Custom")) if "Custom" in env_aud_sel else env_aud_sel
+    with c3:
+        sfx_sel = st.selectbox("SFX (Video)", DEMO_SFX_COMMON)
+        sfx_vid = translate_to_english(st.text_input("SFX Custom")) if "Custom" in sfx_sel else sfx_sel
 
-    if st.button("✨ GENERAR (TXT)", type="primary"):
-        with st.spinner("Creando..."):
-            try:
-                b = GrokVideoPromptBuilder()
-                
-                b.set_field('subject', final_sub)
-                b.set_field('action', translate_to_english(act))
-                b.set_field('details', translate_to_english(det))
-                b.set_field('style', translate_to_english(sty))
-                b.set_field('camera', cam)
-                b.set_field('light', lit)
-                b.set_field('ar', ar)
-                b.set_field('physics_medium', phy_med)
-                b.set_field('physics_details', phy_det)
-
-                b.set_field('wardrobe', w_ch)
-                b.set_field('wardrobe_custom', ward_custom_val)
-                b.set_field('props', p_ch)
-                b.set_field('props_custom', props_custom_val)
-                b.set_field('env', env_ch)
-                b.set_field('env_custom', env_custom_txt)
-
-                b.set_field('audio_mood', m_ch)
-                b.set_field('audio_mood_custom', mus_custom_txt)
-                b.set_field('audio_env', e_ch)
-                b.set_field('audio_env_custom', env_custom_txt_aud)
-                b.set_field('audio_sfx', s_ch)
-                b.set_field('audio_sfx_custom', sfx_custom_txt)
-
-                res = b.build()
-                st.session_state.generated_output = res
-                st.session_state.history.append(res)
-            except Exception as e: st.error(str(e))
+# BOTÓN GENERAR VIDEO
+if st.button("✨ GENERAR PROMPT DE VIDEO", type="primary"):
+    b = GrokVideoPromptBuilder()
+    b.set_field('subject', final_sub)
+    b.set_field('props', final_prop)
+    b.set_field('wardrobe', final_ward)
+    b.set_field('action', final_act)
+    b.set_field('details', translate_to_english(det_raw))
+    b.set_field('physics_medium', phy_med)
+    b.set_field('physics_details', phy_det)
+    b.set_field('style', sty)
+    b.set_field('env', final_env)
+    b.set_field('camera', cam)
+    b.set_field('light', lit)
+    b.set_field('ar', ar)
+    b.set_field('audio_mood', mus_vid)
+    b.set_field('audio_env', env_vid)
+    b.set_field('audio_sfx', sfx_vid)
+    
+    res = b.build()
+    st.session_state.generated_output = res
+    st.session_state.history.append(res)
 
 if st.session_state.generated_output:
-    st.markdown("---")
-    st.subheader("📝 Prompt Final")
-    final_txt = st.text_area("Resultado:", st.session_state.generated_output, height=150)
-    st.code(final_txt, language="text")
+    st.code(st.session_state.generated_output, language="text")
+
+# --- 🎹 ESTUDIO SUNO AI (SECCIÓN NUEVA) ---
+st.markdown("---")
+with st.expander("🎹 SUNO AI Audio Station (Intro / Outro Generator)", expanded=False):
+    st.info("Generador de prompts optimizados para música en Suno AI.")
+    
+    sc1, sc2, sc3 = st.columns(3)
+    with sc1:
+        suno_genre = st.selectbox("Estilo Musical", SUNO_STYLES)
+        suno_custom_genre = st.text_input("O escribe estilo propio", placeholder="Ej: Andean Folk mixed with Techno")
+    with sc2:
+        suno_struct = st.selectbox("Estructura", SUNO_STRUCTURES)
+        suno_bpm = st.slider("Tempo (BPM)", 60, 180, 120)
+    with sc3:
+        suno_mood = st.text_input("Atmósfera / Sentimiento", placeholder="Ej: Epica, Nostálgica, Triunfal")
+        suno_instr = st.text_input("Instrumentos Clave", placeholder="Ej: Guitarra eléctrica, Violonchelo")
+
+    if st.button("🎵 GENERAR PROMPT PARA SUNO"):
+        # Lógica de construcción Suno
+        final_genre = suno_custom_genre if suno_custom_genre else suno_genre
+        # Traducción de campos libres
+        mood_en = translate_to_english(suno_mood)
+        instr_en = translate_to_english(suno_instr)
+        
+        # Formato Suno: [Meta Tags] Descripción
+        suno_prompt = f"[{suno_struct}] [{final_genre}] [{suno_bpm} BPM]\n"
+        suno_prompt += f"{mood_en} atmosphere. Featuring {instr_en}."
+        
+        st.code(suno_prompt, language="text")
