@@ -227,39 +227,46 @@ with st.sidebar:
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio")
 
-# --- GUÍA DE AYUDA (MEGA-PROMPT DE EXTRACCIÓN) ---
-with st.expander("📘 GUÍA DE USO & PROMPT MAESTRO DE EXTRACCIÓN (INGLÉS)", expanded=False):
-    st.markdown("### 🧬 MASTER PROMPT: Extracción de ADN Visual")
-    st.info("Copia este bloque y pégalo en **ChatGPT-4o, Claude 3.5 Sonnet o Midjourney /describe** junto con tu imagen de referencia. Este prompt generará la descripción técnica exacta que necesitas guardar en el 'Banco de ADN'.")
-    
+# --- GUÍA DE AYUDA (COMPLETA) ---
+with st.expander("📘 GUÍA: Flujo de Trabajo & Prompts Maestros", expanded=False):
+    st.markdown("""
+    ### 🧬 1. Cómo extraer el "ADN" (Descripción Maestra)
+    Copia este prompt y pégalo en **ChatGPT-4o, Claude 3.5 Sonnet o Midjourney** junto con tu foto de referencia para obtener la descripción técnica perfecta:
+    """)
     st.code("""
-    # ROLE
-    You are an expert Lead Character Artist and VFX Supervisor specializing in Generative AI prompting (Midjourney/Runway). Your goal is to reverse-engineer the "Visual DNA" of the subject in the image.
-
-    # TASK
-    Analyze the uploaded image and generate a highly technical, comma-separated description of the SUBJECT ONLY. 
-    Do NOT describe the background, action, or temporary lighting unless asked. Focus on the permanent features that make this subject unique.
-
-    # OUTPUT FORMAT
-    String of text, dense keywords, comma-separated.
-
-    # ANALYSIS CATEGORIES (Include these specific details):
-    1. DEMOGRAPHICS & BODY: Age range, precise ethnicity mix, gender, height estimate, somatotype (ectomorph/mesomorph/endomorph), muscle definition level.
-    2. FACE STRUCTURE: Face shape (square/oval/diamond), jawline definition (sharp/soft), cheekbone prominence, forehead height.
-    3. EYES: Exact color (e.g., 'piercing icy blue'), shape (almond/hooded/deep-set), eyebrow density and arch.
-    4. SKIN & TEXTURE: Complexion, visible pores, freckles, scars, stubble density, skin specular highlights (sweat/oil).
-    5. HAIR: Exact color code (e.g., 'raven black with midnight blue undertones'), cut style, texture (wavy/coarse), hairline.
-    6. KEY FEATURES: Distinguishing marks (tattoos, moles), nose shape (aquiline/button), lip thickness.
-
-    # EXAMPLE OUTPUT START
-    "Male, 30s, mixed Japanese-Caucasian heritage, lean ectomorph build, wire-rimmed glasses, sharp jawline, high cheekbones, stubble beard, textured messy undercut hair, dark hazel eyes, slight scar on left eyebrow..."
+    # ROLE: Expert Lead Character Artist & VFX Supervisor.
+    # TASK: Analyze the image and generate a "Visual DNA" description (Subject ONLY).
+    # OUTPUT: Dense, comma-separated keywords in English.
+    # DETAILS TO INCLUDE:
+    1. DEMOGRAPHICS: Age, ethnicity, gender, somatotype (body build).
+    2. FACE: Jawline definition, cheekbones, eye color/shape, skin texture (pores/scars).
+    3. HAIR: Exact color, cut, texture.
+    4. STYLE: Lighting type (Rembrandt/volumetric), camera lens (85mm), render style.
+    # NO: Clothing or Background (unless inseparable).
     """, language="text")
     
     st.markdown("""
     ---
-    ### ⚠️ Solución de Problemas
-    * **Botón Restaurar Fábrica:** (Menú Lateral) Úsalo si borraste personajes importantes por error. Reinicia la lista de actores.
-    * **Start/End Frame:** Si usas 'Image-to-Video', sube la imagen inicial. La imagen final es opcional pero ayuda a guiar la animación.
+    ### 🚀 2. Flujo de Trabajo del Director
+    1.  **PRE-PRODUCCIÓN (Barra Lateral):** * Usa el *Prompt Maestro* para extraer el ADN de tus fotos.
+        * Guarda tus Actores y Objetos en el **Banco de ADN**.
+        * *Opcional:* Sube una imagen de referencia (Start Frame) si vas a animar una foto.
+    
+    2.  **RODAJE (Panel Principal):**
+        * **Historia:** Elige Actor (ADN) + Objeto (ADN/Custom) + Vestuario.
+        * **Física:** ¿Estás en Marte? ¿Bajo el agua? Activa la simulación correcta.
+        * **Visual/Técnica:** Define el entorno, la luz y la cámara.
+    
+    3.  **POST-PRODUCCIÓN (Audio):**
+        * Define la atmósfera sonora y SFX.
+        * Usa el módulo **SUNO AI** (abajo del todo) si necesitas música.
+    
+    4.  **EXPORTACIÓN:**
+        * Copia el Prompt Final y úsalo en **Runway Gen-3, Luma Dream Machine o Kling**.
+    
+    ---
+    ### ⚠️ 3. Solución de Problemas
+    * **Botón "Restaurar Fábrica":** (Menú Lateral) Púlsalo si has borrado personajes por error o la app se comporta extraño. Reinicia todo a su estado original.
     """)
 
 # PESTAÑAS
