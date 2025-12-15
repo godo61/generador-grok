@@ -37,7 +37,6 @@ def translate_to_english(text):
     return text
 
 # --- LISTAS DE ACTIVOS (ASSETS) ---
-
 DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "IMAX Quality", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
 
 DEMO_ENVIRONMENTS = [
@@ -83,28 +82,15 @@ DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal D
 DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
 DEMO_SFX_COMMON = ["None", "Thrusters firing", "Water splashing", "Paddle hitting water", "Breathing in helmet", "Radio comms beep", "Footsteps", "✏️ Custom..."]
 
-# --- ⚛️ MOTOR DE FÍSICA AMPLIADO ---
+# --- ⚛️ MOTOR DE FÍSICA ---
 PHYSICS_LOGIC = {
     "Neutral / None": [],
-    
-    "🌌 Space (Zero-G / Void)": [
-        "Zero-gravity floating objects/hair", "No air resistance", "High contrast stark lighting", "Deep black shadows", "Vacuum silence atmosphere", "Floating dust particles"
-    ],
-    "🔴 Mars / Planetary (Low G)": [
-        "Low gravity movement (Slow jumps)", "Red dust storms", "Haze and heat distortion", "Fine dust settling on surfaces", "Wind sweeping across barren terrain"
-    ],
-    "🌊 Water (Surface/River)": [
-        "Turbulent muddy water flow", "White water rapids foam", "Hydrodynamic splashes", "Wet fabric adhesion", "Light refraction on ripples"
-    ],
-    "🤿 Underwater (Submerged)": [
-        "Weightless suspension", "Caustics light patterns", "Rising bubbles", "Murky depth visibility", "Muffled movement"
-    ],
-    "🌬️ Air / Flight": [
-        "High velocity wind drag", "Clouds passing rapidly", "Fabric fluttering violently", "Motion blur", "Aerodynamic trails"
-    ],
-    "❄️ Snow / Ice": [
-        "Condensation breath", "Deep snow footprints", "Falling snow flakes", "Ice reflection", "Pale lighting"
-    ]
+    "🌌 Space (Zero-G / Void)": ["Zero-gravity floating objects/hair", "No air resistance", "High contrast stark lighting", "Deep black shadows", "Vacuum silence atmosphere", "Floating dust particles"],
+    "🔴 Mars / Planetary (Low G)": ["Low gravity movement (Slow jumps)", "Red dust storms", "Haze and heat distortion", "Fine dust settling on surfaces", "Wind sweeping across barren terrain"],
+    "🌊 Water (Surface/River)": ["Turbulent muddy water flow", "White water rapids foam", "Hydrodynamic splashes", "Wet fabric adhesion", "Light refraction on ripples"],
+    "🤿 Underwater (Submerged)": ["Weightless suspension", "Caustics light patterns", "Rising bubbles", "Murky depth visibility", "Muffled movement"],
+    "🌬️ Air / Flight": ["High velocity wind drag", "Clouds passing rapidly", "Fabric fluttering violently", "Motion blur", "Aerodynamic trails"],
+    "❄️ Snow / Ice": ["Condensation breath", "Deep snow footprints", "Falling snow flakes", "Ice reflection", "Pale lighting"]
 }
 
 # --- MOTOR DE PROMPTS ---
@@ -127,50 +113,39 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
-        # --- PROCESAMIENTO DE CAMPOS CUSTOM ---
-        # 1. Wardrobe
+        # --- PROCESAMIENTO CUSTOM ---
+        # Wardrobe
         wardrobe_txt = ""
-        if p.get('wardrobe') and "Custom" not in p['wardrobe']:
-            wardrobe_txt = p['wardrobe'].split('(')[0].strip() # Limpiamos paréntesis
-        elif p.get('wardrobe_custom'):
-            wardrobe_txt = p['wardrobe_custom']
+        if p.get('wardrobe_custom'): wardrobe_txt = p['wardrobe_custom']
+        elif p.get('wardrobe') and "Custom" not in p['wardrobe']: wardrobe_txt = p['wardrobe'].split('(')[0].strip()
 
-        # 2. Props
+        # Props
         props_txt = ""
-        if p.get('props') and "None" not in p['props'] and "Custom" not in p['props']:
-             props_txt = p['props'].split('(')[0].strip()
-        elif p.get('props_custom'):
-             props_txt = p['props_custom']
+        if p.get('props_custom'): props_txt = p['props_custom']
+        elif p.get('props') and "None" not in p['props'] and "Custom" not in p['props']: props_txt = p['props'].split('(')[0].strip()
 
-        # 3. Environment
+        # Environment
         env_txt = ""
-        if p.get('env') and "Custom" not in p['env']:
-             env_txt = p['env'].split('(')[0].strip()
-        elif p.get('env_custom'):
-             env_txt = p['env_custom']
+        if p.get('env_custom'): env_txt = p['env_custom']
+        elif p.get('env') and "Custom" not in p['env']: env_txt = p['env'].split('(')[0].strip()
 
-        # --- AUDIO LOGIC ---
+        # --- AUDIO ---
         audio_parts = []
         # Music
-        m_val = p.get('audio_mood')
-        if m_val and "Custom" in m_val and p.get('audio_mood_custom'):
-             audio_parts.append(f"Music: {p['audio_mood_custom']}")
-        elif m_val and "No Music" not in m_val:
-             audio_parts.append(f"Music: {m_val}")
+        m_val = p.get('audio_mood_custom') if p.get('audio_mood_custom') else p.get('audio_mood')
+        if m_val and "No Music" not in m_val and "Custom" not in m_val:
+            audio_parts.append(f"Music: {m_val}")
 
-        # Env Sound
-        e_val = p.get('audio_env')
-        if e_val and "Custom" in e_val and p.get('audio_env_custom'):
-             audio_parts.append(f"Ambience: {p['audio_env_custom']}")
-        elif e_val and "No Background" not in e_val:
-             audio_parts.append(f"Ambience: {e_val}")
+        # Ambience
+        e_val = p.get('audio_env_custom') if p.get('audio_env_custom') else p.get('audio_env')
+        if e_val and "No Background" not in e_val and "Custom" not in e_val:
+            audio_parts.append(f"Ambience: {e_val}")
 
         # SFX
-        s_val = p.get('audio_sfx')
-        if s_val and "Custom" in s_val and p.get('audio_sfx_custom'):
-             audio_parts.append(f"SFX: {p['audio_sfx_custom']}")
-        elif s_val and "None" not in s_val:
-             audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        s_val = p.get('audio_sfx_custom') if p.get('audio_sfx_custom') else p.get('audio_sfx')
+        if s_val and "None" not in s_val and "Custom" not in s_val:
+            clean_sfx = s_val.split('(')[0].strip()
+            audio_parts.append(f"SFX: {clean_sfx}")
         
         final_audio = ". ".join(audio_parts)
 
@@ -182,7 +157,7 @@ class GrokVideoPromptBuilder:
             if details:
                 physics_prompt = f"Physics Engine: {medium} simulation ({', '.join(details)})"
 
-        # --- CONSTRUCCIÓN DEL PROMPT ---
+        # --- CONSTRUCCIÓN ---
         segments = []
         
         if self.is_img2video:
@@ -193,20 +168,10 @@ class GrokVideoPromptBuilder:
             if keep: segments.append(f"Maintain: {', '.join(keep)}.")
             if p.get('img_action'): segments.append(f"Action: {p['img_action']}")
         else:
-            # Construcción del Sujeto + Vestuario + Props
             base_subj = p.get('subject', '')
-            
-            # Inyección de Vestuario
-            if wardrobe_txt:
-                base_subj += f", wearing {wardrobe_txt}"
-            
-            # Inyección de Props
-            if props_txt:
-                base_subj += f", holding/using {props_txt}"
-
-            # Inyección de Detalles extra
-            if p.get('details'):
-                 base_subj += f", {p['details']}"
+            if wardrobe_txt: base_subj += f", wearing {wardrobe_txt}"
+            if props_txt: base_subj += f", holding/using {props_txt}"
+            if p.get('details'): base_subj += f", {p['details']}"
 
             visual_block = []
             if base_subj: visual_block.append(base_subj)
@@ -217,7 +182,6 @@ class GrokVideoPromptBuilder:
             if scene: segments.append(scene + ".")
             if p.get('style'): segments.append(f"Style: {p['style']}.")
 
-        # Añadidos Técnicos
         if p.get('light'): segments.append(f"Lighting: {p['light']}.")
         if p.get('camera'): segments.append(f"Camera: {p['camera']}.")
         if physics_prompt: segments.append(physics_prompt + ".")
@@ -254,16 +218,8 @@ with st.sidebar:
 # PANEL PRINCIPAL
 st.title("🎬 Grok Video Builder")
 
-# INICIALIZACIÓN DE VARIABLES
-keep_s, keep_b = True, True
-act_img = ""
-final_sub, act, det = "", "", ""
-sty, lit, cam, ar = "", "", "", ""
-ward_final, props_final, env_final = "", "", ""
-mus_final, env_aud_final, sfx_final = "", "", ""
-phy_med, phy_det = "Neutral / None", []
-
 if st.session_state.uploaded_image_name:
+    # MODO IMAGEN
     st.info(f"Modo Imagen: {st.session_state.uploaded_image_name}")
     t1, t2, t3, t4 = st.tabs(["🖼️ Acción", "⚛️ Física", "🎥 Técnica", "🎵 Audio"])
     
@@ -288,13 +244,13 @@ if st.session_state.uploaded_image_name:
         c1, c2, c3 = st.columns(3)
         with c1: 
             m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_i")
-            mus_final = translate_to_english(st.text_input("Cuál:", key="mc_i")) if "Custom" in m_ch else m_ch
+            mus_custom_val = translate_to_english(st.text_input("Cuál:", key="mc_i")) if "Custom" in m_ch else ""
         with c2:
             e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_i")
-            env_aud_final = translate_to_english(st.text_input("Cuál:", key="ec_i")) if "Custom" in e_ch else e_ch
+            env_custom_val = translate_to_english(st.text_input("Cuál:", key="ec_i")) if "Custom" in e_ch else ""
         with c3:
             s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_i")
-            sfx_final = translate_to_english(st.text_input("Cuál:", key="sc_i")) if "Custom" in s_ch else s_ch
+            sfx_custom_val = translate_to_english(st.text_input("Cuál:", key="sc_i")) if "Custom" in s_ch else ""
 
     if st.button("✨ GENERAR (IMG)", type="primary"):
         with st.spinner("Creando..."):
@@ -309,9 +265,14 @@ if st.session_state.uploaded_image_name:
                 b.set_field('camera', cam)
                 b.set_field('light', lit)
                 b.set_field('ar', ar)
-                b.set_field('audio_mood', mus_final) # Pasamos valor directo ya resuelto
-                b.set_field('audio_env', env_aud_final)
-                b.set_field('audio_sfx', sfx_final)
+                
+                b.set_field('audio_mood', m_ch)
+                b.set_field('audio_mood_custom', mus_custom_val)
+                b.set_field('audio_env', e_ch)
+                b.set_field('audio_env_custom', env_custom_val)
+                b.set_field('audio_sfx', s_ch)
+                b.set_field('audio_sfx_custom', sfx_custom_val)
+                
                 res = b.build()
                 st.session_state.generated_output = res
                 st.session_state.history.append(res)
@@ -320,6 +281,11 @@ if st.session_state.uploaded_image_name:
 else:
     # MODO TEXTO / HISTORIA
     t1, t2, t3, t4, t5 = st.tabs(["📝 Historia & Assets", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+    
+    # Declaramos variables vacías por seguridad
+    ward_custom_val = ""
+    props_custom_val = ""
+    env_custom_txt = ""
     
     with t1:
         st.subheader("Protagonista")
@@ -331,15 +297,11 @@ else:
         with c1:
             w_ch = st.selectbox("Vestuario (Wardrobe)", DEMO_WARDROBE)
             if "Custom" in w_ch:
-                b.set_field('wardrobe_custom', translate_to_english(st.text_input("Describe Ropa", key="wc_t")))
-            else:
-                b.set_field('wardrobe', w_ch)
+                ward_custom_val = translate_to_english(st.text_input("Describe Ropa", key="wc_t"))
         with c2:
             p_ch = st.selectbox("Objeto (Prop)", DEMO_PROPS)
             if "Custom" in p_ch:
-                b.set_field('props_custom', translate_to_english(st.text_input("Describe Objeto", key="pc_t")))
-            else:
-                b.set_field('props', p_ch)
+                props_custom_val = translate_to_english(st.text_input("Describe Objeto", key="pc_t"))
 
         st.subheader("Acción")
         act = st.text_input("¿Qué está haciendo?", placeholder="Ej: caminando hacia el cohete")
@@ -353,12 +315,9 @@ else:
         c1, c2 = st.columns(2)
         with c1: sty = st.selectbox("Estilo", DEMO_STYLES)
         with c2:
-            # ENTORNO VISUAL
             env_ch = st.selectbox("Lugar / Entorno", DEMO_ENVIRONMENTS)
             if "Custom" in env_ch:
-                b.set_field('env_custom', translate_to_english(st.text_input("Describe Lugar", key="ec_txt")))
-            else:
-                b.set_field('env', env_ch)
+                env_custom_txt = translate_to_english(st.text_input("Describe Lugar", key="ec_txt"))
 
     with t4:
         c1, c2, c3 = st.columns(3)
@@ -370,54 +329,50 @@ else:
         c1, c2, c3 = st.columns(3)
         with c1: 
             m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_t")
-            if "Custom" in m_ch: b.set_field('audio_mood_custom', translate_to_english(st.text_input("Cuál:", key="mc_t")))
-            else: b.set_field('audio_mood', m_ch)
+            mus_custom_txt = translate_to_english(st.text_input("Cuál:", key="mc_t")) if "Custom" in m_ch else ""
         with c2:
             e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_t")
-            if "Custom" in e_ch: b.set_field('audio_env_custom', translate_to_english(st.text_input("Cuál:", key="aec_t")))
-            else: b.set_field('audio_env', e_ch)
+            env_custom_txt_aud = translate_to_english(st.text_input("Cuál:", key="aec_t")) if "Custom" in e_ch else ""
         with c3:
             s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_t")
-            if "Custom" in s_ch: b.set_field('audio_sfx_custom', translate_to_english(st.text_input("Cuál:", key="sc_t")))
-            else: b.set_field('audio_sfx', s_ch)
+            sfx_custom_txt = translate_to_english(st.text_input("Cuál:", key="sc_t")) if "Custom" in s_ch else ""
 
     if st.button("✨ GENERAR (TXT)", type="primary"):
         with st.spinner("Creando..."):
             try:
-                # Instancia local
-                b_run = GrokVideoPromptBuilder()
+                b = GrokVideoPromptBuilder()
                 
-                # Asignar campos simples
-                b_run.set_field('subject', final_sub)
-                b_run.set_field('action', translate_to_english(act))
-                b_run.set_field('details', translate_to_english(det))
-                b_run.set_field('style', translate_to_english(sty))
-                b_run.set_field('camera', cam)
-                b_run.set_field('light', lit)
-                b_run.set_field('ar', ar)
-                b_run.set_field('physics_medium', phy_med)
-                b_run.set_field('physics_details', phy_det)
+                # Asignar campos base
+                b.set_field('subject', final_sub)
+                b.set_field('action', translate_to_english(act))
+                b.set_field('details', translate_to_english(det))
+                b.set_field('style', translate_to_english(sty))
+                b.set_field('camera', cam)
+                b.set_field('light', lit)
+                b.set_field('ar', ar)
+                b.set_field('physics_medium', phy_med)
+                b.set_field('physics_details', phy_det)
 
-                # Asignar campos complejos desde variables temporales si existen
-                if 'wardrobe_custom' in b.parts: b_run.set_field('wardrobe_custom', b.parts['wardrobe_custom'])
-                else: b_run.set_field('wardrobe', w_ch)
+                # Asignar campos con lógica custom
+                b.set_field('wardrobe', w_ch)
+                b.set_field('wardrobe_custom', ward_custom_val)
                 
-                if 'props_custom' in b.parts: b_run.set_field('props_custom', b.parts['props_custom'])
-                else: b_run.set_field('props', p_ch)
+                b.set_field('props', p_ch)
+                b.set_field('props_custom', props_custom_val)
                 
-                if 'env_custom' in b.parts: b_run.set_field('env_custom', b.parts['env_custom'])
-                else: b_run.set_field('env', env_ch)
+                b.set_field('env', env_ch)
+                b.set_field('env_custom', env_custom_txt)
 
-                if 'audio_mood_custom' in b.parts: b_run.set_field('audio_mood_custom', b.parts['audio_mood_custom'])
-                else: b_run.set_field('audio_mood', m_ch)
+                b.set_field('audio_mood', m_ch)
+                b.set_field('audio_mood_custom', mus_custom_txt)
 
-                if 'audio_env_custom' in b.parts: b_run.set_field('audio_env_custom', b.parts['audio_env_custom'])
-                else: b_run.set_field('audio_env', e_ch)
+                b.set_field('audio_env', e_ch)
+                b.set_field('audio_env_custom', env_custom_txt_aud)
 
-                if 'audio_sfx_custom' in b.parts: b_run.set_field('audio_sfx_custom', b.parts['audio_sfx_custom'])
-                else: b_run.set_field('audio_sfx', s_ch)
+                b.set_field('audio_sfx', s_ch)
+                b.set_field('audio_sfx_custom', sfx_custom_txt)
 
-                res = b_run.build()
+                res = b.build()
                 st.session_state.generated_output = res
                 st.session_state.history.append(res)
             except Exception as e: st.error(str(e))
