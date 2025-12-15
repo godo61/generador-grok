@@ -35,6 +35,8 @@ def apply_custom_styles(dark_mode=False):
             font-weight: bold !important; opacity: 1;
         }}
         h1, h2, h3, p, li {{ color: {text_color} !important; }}
+        /* Ajuste para el text area de resultado */
+        textarea {{ font-size: 1.1rem !important; font-family: monospace !important; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -146,6 +148,7 @@ class GrokVideoPromptBuilder:
         # Segments
         segments = []
         if self.is_img2video:
+            # MODO IMAGEN (START FRAME)
             segments.append(f"Start Frame: '{self.image_filename}'.")
             if self.end_image_filename:
                 segments.append(f"End Frame: '{self.end_image_filename}'.")
@@ -155,22 +158,22 @@ class GrokVideoPromptBuilder:
             if p.get('keep_bg'): keep.append("Background")
             if keep: segments.append(f"Maintain: {', '.join(keep)}.")
             
-            # --- NUEVA LÓGICA IMG2VID ---
-            # Si se seleccionó "Sujeto de la Foto", no inyectamos descripción de texto del sujeto.
-            # Solo acción y entorno.
-            if p.get('img_action'): segments.append(f"Action: {p['img_action']}")
-            
         else:
-            # Modo Texto Puro
+            # MODO TEXTO (SUBJECT BASE)
             base = p.get('subject', '')
             prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
             if prop_val and "None" not in prop_val and "Custom" not in prop_val: base += f", holding/using {prop_val}"
             ward_val = p.get('wardrobe_custom') if p.get('wardrobe_custom') else p.get('wardrobe')
             if ward_val and "Custom" not in ward_val: base += f", wearing {ward_val}"
             if p.get('details'): base += f", {p['details']}"
-            
             segments.append(base)
-            if p.get('action'): segments.append(f"Action: {p['action']}")
+
+        # --- ACCIÓN (AHORA SE AÑADE SIEMPRE AL FINAL, TANTO EN FOTO COMO EN TEXTO) ---
+        if p.get('action'): segments.append(f"Action: {p['action']}")
+
+        # RESTO DE ELEMENTOS
+        if not self.is_img2video:
+            # En modo foto, el entorno ya está en la foto, no lo describimos de nuevo
             env_val = p.get('env_custom') if p.get('env_custom') else p.get('env')
             if env_val and "Custom" not in env_val: segments.append(f"Loc: {env_val}")
             if p.get('style'): segments.append(f"Style: {p['style']}.")
@@ -255,15 +258,12 @@ with t1:
     c_a, c_b = st.columns(2)
     with c_a:
         st.markdown("##### 🎭 Casting")
-        # --- LÓGICA INTELIGENTE DE ACTOR ---
-        # Si hay imagen subida, añadimos la opción "Sujeto de la Foto" al principio
         char_options = list(st.session_state.characters.keys())
         if st.session_state.uploaded_image_name:
             char_options.insert(0, "📷 Sujeto de la Foto (Usar Referencia)")
         
         char_sel = st.selectbox("Actor", char_options)
         
-        # Si elige la foto, el "Sujeto" se queda vacío para no interferir con la imagen
         if "📷 Sujeto de la Foto" in char_sel:
             final_sub = "" 
         else:
@@ -344,7 +344,12 @@ if st.button("✨ GENERAR PROMPT", type="primary"):
     st.session_state.generated_output = res
     st.session_state.history.append(res)
 
+# --- SALIDA ---
 if st.session_state.generated_output:
+    st.markdown("---")
+    st.subheader("📝 Prompt Final (Editable)")
+    final_editable = st.text_area("Copia o edita tu prompt aquí:", value=st.session_state.generated_output, height=180)
+    st.caption("👇 Copia Rápida")
     st.code(st.session_state.generated_output, language="text")
 
 # --- SUNO ---
