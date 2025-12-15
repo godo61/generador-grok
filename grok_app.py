@@ -50,7 +50,7 @@ if 'characters' not in st.session_state:
         "FREYA (Base)": "A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture. Heavy dark brunette hair."
     }
 
-# ADN: OBJETOS (NUEVO)
+# ADN: OBJETOS
 if 'custom_props' not in st.session_state:
     st.session_state.custom_props = {
         "Guitarra de Ton": "A vintage 1959 sunburst electric guitar, road-worn finish, rusted hardware, missing high-E string.",
@@ -70,14 +70,17 @@ def translate_to_english(text):
             return text
     return text
 
-# --- LISTAS FIJAS ---
+# --- LISTAS FIJAS (DEFINICIONES COMPLETAS) ---
 DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🔴 Mars Surface", "🛶 Dusi River", "🚀 ISS Interior", "🌌 Deep Space", "🌲 Mystic Forest", "🏙️ Cyberpunk City"]
 DEMO_WARDROBE = ["✏️ Custom...", "👨‍🚀 NASA Spacesuit", "👽 Sci-Fi Suit", "🛶 Kayak Gear", "🤿 Wetsuit", "👕 Casual", "🤵 Formal"]
 DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark", "Stark Space Sunlight"]
+
+# ¡AQUÍ ESTÁ LA LISTA QUE FALTABA!
+DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)", "1:1 (Square)"]
+
 DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating"]
 
-# --- ¡AQUÍ ESTABA EL ERROR! HE REINTRODUCIDO DEMO_PROPS ---
 DEMO_PROPS = [
     "None",
     "✏️ Custom...",
@@ -160,7 +163,6 @@ class GrokVideoPromptBuilder:
         else:
             base = p.get('subject', '')
             
-            # Objetos Custom (ADN) o Genericos
             prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
             if prop_val and "None" not in prop_val and "Custom" not in prop_val:
                 base += f", holding/using {prop_val}"
@@ -207,7 +209,7 @@ with st.sidebar:
                 st.rerun()
 
     with tab_obj:
-        o_name = st.text_input("Nombre Objeto (Ej: Guitarra Vieja)")
+        o_name = st.text_input("Nombre Objeto")
         o_desc = st.text_area("Descripción Visual Objeto")
         if st.button("Guardar Objeto"):
             if o_name and o_desc:
@@ -242,20 +244,17 @@ with t1:
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("##### 🎭 Casting")
-        # Selector de Personajes (ADN)
         char_keys = list(st.session_state.characters.keys())
         char_sel = st.selectbox("Actor", char_keys)
         final_sub = st.session_state.characters[char_sel]
         
     with col_b:
         st.markdown("##### 🎒 Utilería (Props)")
-        # Selector Híbrido: Lista Demo + Objetos Guardados (ADN)
-        # CORREGIDO: DEMO_PROPS ya está definido arriba
         prop_options = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
         p_sel = st.selectbox("Objeto en mano", prop_options)
         
         if p_sel in st.session_state.custom_props:
-            final_prop = st.session_state.custom_props[p_sel] # Usar descripción guardada
+            final_prop = st.session_state.custom_props[p_sel] 
         elif "Custom" in p_sel:
             final_prop = translate_to_english(st.text_input("Describe objeto nuevo", key="new_prop"))
         elif "None" not in p_sel:
@@ -346,14 +345,8 @@ with st.expander("🎹 SUNO AI Audio Station (Intro / Outro Generator)", expande
         suno_instr = st.text_input("Instrumentos Clave", placeholder="Ej: Guitarra eléctrica, Violonchelo")
 
     if st.button("🎵 GENERAR PROMPT PARA SUNO"):
-        # Lógica de construcción Suno
         final_genre = suno_custom_genre if suno_custom_genre else suno_genre
-        # Traducción de campos libres
         mood_en = translate_to_english(suno_mood)
         instr_en = translate_to_english(suno_instr)
-        
-        # Formato Suno: [Meta Tags] Descripción
-        suno_prompt = f"[{suno_struct}] [{final_genre}] [{suno_bpm} BPM]\n"
-        suno_prompt += f"{mood_en} atmosphere. Featuring {instr_en}."
-        
+        suno_prompt = f"[{suno_struct}] [{final_genre}] [{suno_bpm} BPM]\n{mood_en} atmosphere. Featuring {instr_en}."
         st.code(suno_prompt, language="text")
