@@ -43,11 +43,17 @@ if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 
-# ADN: PERSONAJES
+# ADN: PERSONAJES (RESTAURADOS TODOS)
 if 'characters' not in st.session_state:
     st.session_state.characters = {
-        "TON (Base)": "A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality. High cheekbones, sharp geometric jawline, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut.",
-        "FREYA (Base)": "A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture. Heavy dark brunette hair."
+        # --- PRESETS COMPLETOS (ANTIGUOS) ---
+        "TON (Guitarra)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique... (Full description) ... He is holding and playing a specific electric guitar model, adopting a passionate musician pose, fingers on the fretboard.""",
+        "TON (Micro)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique... (Full description) ... He is holding a vintage microphone close to his mouth, singing passionately with eyes slightly closed, performing on stage.""",
+        "FREYA (Kayak)": """A hyper-realistic, cinematic medium shot of a 25-year-old female survivor with a statuesque, athletic 170cm and 60kg physique... (Full description) ... She is paddling a Hyper-realistic expedition sea kayak, model Point 65 Freya 18.""",
+        
+        # --- BASES FLEXIBLES (NUEVOS) ---
+        "TON (Base - Solo cuerpo)": """A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality and lean muscularity. High cheekbones, sharp geometric jawline, faint skin porosity, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.""",
+        "FREYA (Base - Solo cuerpo)": """A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture, visible pores. Heavy dark brunette hair."""
     }
 
 # ADN: OBJETOS
@@ -70,28 +76,14 @@ def translate_to_english(text):
             return text
     return text
 
-# --- LISTAS FIJAS (DEFINICIONES COMPLETAS) ---
+# --- LISTAS FIJAS ---
 DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🔴 Mars Surface", "🛶 Dusi River", "🚀 ISS Interior", "🌌 Deep Space", "🌲 Mystic Forest", "🏙️ Cyberpunk City"]
 DEMO_WARDROBE = ["✏️ Custom...", "👨‍🚀 NASA Spacesuit", "👽 Sci-Fi Suit", "🛶 Kayak Gear", "🤿 Wetsuit", "👕 Casual", "🤵 Formal"]
 DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark", "Stark Space Sunlight"]
-
-# ¡AQUÍ ESTÁ LA LISTA QUE FALTABA!
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)", "1:1 (Square)"]
-
 DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating"]
-
-DEMO_PROPS = [
-    "None",
-    "✏️ Custom...",
-    "🛶 Carbon Fiber Kayak Paddle",
-    "🎸 Electric Guitar",
-    "🎤 Vintage Microphone",
-    "🔫 Sci-Fi Blaster / Raygun",
-    "📱 Holographic Datapad",
-    "🧪 Glowing Vial",
-    "☕ Coffee Cup"
-]
+DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Carbon Fiber Kayak Paddle", "🎸 Electric Guitar", "🎤 Vintage Microphone", "🔫 Sci-Fi Blaster", "📱 Holographic Datapad", "🧪 Glowing Vial", "☕ Coffee Cup"]
 
 # AUDIO LISTS
 DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence", "✏️ Custom..."]
@@ -163,6 +155,7 @@ class GrokVideoPromptBuilder:
         else:
             base = p.get('subject', '')
             
+            # Objetos Custom (ADN) o Genericos
             prop_val = p.get('props_custom') if p.get('props_custom') else p.get('props')
             if prop_val and "None" not in prop_val and "Custom" not in prop_val:
                 base += f", holding/using {prop_val}"
