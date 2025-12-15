@@ -71,7 +71,7 @@ DEMO_AUDIO_ENV = [
     "Space Station Hum", "Battlefield Chaos", "Office Ambience"
 ]
 
-# ¡NUEVA LISTA DE EFECTOS PUNTUALES (SFX)!
+# LISTA DE EFECTOS PUNTUALES (SFX)
 DEMO_SFX_COMMON = [
     "None (Ninguno)",
     "Footsteps on concrete (Pasos)",
@@ -85,7 +85,7 @@ DEMO_SFX_COMMON = [
     "Keyboard typing (Tecleo)",
     "Siren wailing (Sirenas)",
     "Heartbeat (Latido)",
-    "✏️ Custom / Other... (Escribir propio)" # Opción para activar el cajón
+    "✏️ Custom / Other... (Escribir propio)" 
 ]
 
 # --- MOTOR DE PROMPTS ---
@@ -95,8 +95,13 @@ class GrokVideoPromptBuilder:
         self.is_img2video = False
         self.image_filename = ""
 
+    # --- CORRECCIÓN DEL ERROR AQUÍ ---
     def set_field(self, key, value):
-        self.parts[key] = value.strip()
+        # Si es texto, quitamos espacios. Si es Booleano (Checkbox), lo guardamos tal cual.
+        if isinstance(value, str):
+            self.parts[key] = value.strip()
+        else:
+            self.parts[key] = value
 
     def activate_img2video(self, filename):
         self.is_img2video = True
@@ -113,8 +118,9 @@ class GrokVideoPromptBuilder:
             audio_prompt_parts.append(f"Environment sound: {p['audio_env']}")
         if p.get('audio_sfx') and "None" not in p['audio_sfx']:
             # Limpiamos el texto del selector (ej: quitar "(Pasos)")
-            sfx_clean = p['audio_sfx'].split('(')[0].strip()
-            audio_prompt_parts.append(f"Specific SFX: {sfx_clean}")
+            if isinstance(p['audio_sfx'], str):
+                sfx_clean = p['audio_sfx'].split('(')[0].strip()
+                audio_prompt_parts.append(f"Specific SFX: {sfx_clean}")
             
         final_audio_string = ". ".join(audio_prompt_parts)
 
@@ -246,7 +252,7 @@ if st.session_state.uploaded_image_name:
             custom_sfx_val = st.text_input("Describe el efecto sonoro:", key="custom_sfx_img_input")
             final_sfx_selection = translate_to_english(custom_sfx_val)
         else:
-            final_sfx_selection = sfx_choice_img # Ya está en inglés en la lista
+            final_sfx_selection = sfx_choice_img
 
     st.markdown("---")
     if st.button("✨ GENERAR VIDEO-PROMPT (IMAGEN)", type="primary"):
@@ -298,48 +304,4 @@ else:
         st.subheader("Dirección de Cámara")
         c1, c2 = st.columns(2)
         with c1: cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
-        with c2: ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
-
-    with tab_audio:
-        st.subheader("Diseño Sonoro por Capas")
-        c_au1, c_au2 = st.columns(2)
-        with c_au1:
-            aud_mood = st.selectbox("Banda Sonora / Mood", DEMO_AUDIO_MOOD)
-        with c_au2:
-            aud_env = st.selectbox("Atmósfera / Fondo", DEMO_AUDIO_ENV)
-            
-        # SELECTOR DE SFX INTELIGENTE
-        st.markdown("##### Efectos Puntuales (SFX)")
-        sfx_choice = st.selectbox("Selecciona Efecto", DEMO_SFX_COMMON, key="sfx_txt")
-        
-        if "Custom" in sfx_choice:
-            custom_sfx_val = st.text_input("Describe el efecto sonoro:", key="custom_sfx_txt_input")
-            final_sfx_selection = translate_to_english(custom_sfx_val)
-        else:
-            final_sfx_selection = sfx_choice
-
-    st.markdown("---")
-    if st.button("✨ GENERAR PROMPT DE HISTORIA", type="primary"):
-        b = GrokVideoPromptBuilder()
-        b.set_field('style', translate_to_english(sty))
-        b.set_field('subject', final_sub)
-        b.set_field('details', translate_to_english(det))
-        b.set_field('action', translate_to_english(act))
-        b.set_field('env', translate_to_english(env))
-        b.set_field('light', lit)
-        b.set_field('camera', cam)
-        b.set_field('ar', ar)
-        b.set_field('audio_mood', aud_mood)
-        b.set_field('audio_env', aud_env)
-        b.set_field('audio_sfx', final_sfx_selection)
-        
-        st.session_state.generated_output = b.build()
-        st.session_state.history.append(st.session_state.generated_output)
-
-# --- ZONA DE RESULTADOS ---
-if st.session_state.generated_output:
-    st.markdown("---")
-    st.subheader("📝 Tu Prompt Final")
-    edited_prompt = st.text_area("Edita o corrige el texto aquí antes de copiar:", value=st.session_state.generated_output, height=150)
-    st.caption("👇 Copia el código final aquí:")
-    st.code(edited_prompt, language="text")
+        with c2: ar
