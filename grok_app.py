@@ -28,7 +28,7 @@ if 'characters' not in st.session_state:
 
 # --- FUNCIONES ---
 def translate_to_english(text):
-    if text and text.strip():
+    if text and isinstance(text, str) and text.strip():
         try:
             return GoogleTranslator(source='auto', target='en').translate(text)
         except Exception as e:
@@ -58,7 +58,6 @@ DEMO_CAMERAS = [
     "Pan", "Tilt", "Orbit", "Handheld / Shake", "FPV Drone"
 ]
 
-# LISTAS DE AUDIO
 DEMO_AUDIO_MOOD = [
     "No Music (Silence)", "Cinematic Orchestral (Epic)", "Cyberpunk Synthwave", 
     "Lo-Fi Chill", "Horror / Suspense", "Upbeat / Happy", "Sad / Melancholic",
@@ -71,7 +70,6 @@ DEMO_AUDIO_ENV = [
     "Space Station Hum", "Battlefield Chaos", "Office Ambience"
 ]
 
-# LISTA DE EFECTOS PUNTUALES (SFX)
 DEMO_SFX_COMMON = [
     "None (Ninguno)",
     "Footsteps on concrete (Pasos)",
@@ -95,13 +93,14 @@ class GrokVideoPromptBuilder:
         self.is_img2video = False
         self.image_filename = ""
 
-    # --- CORRECCIÓN DEL ERROR AQUÍ ---
+    # --- FUNCIÓN BLINDADA PARA EVITAR ERRORES ---
     def set_field(self, key, value):
-        # Si es texto, quitamos espacios. Si es Booleano (Checkbox), lo guardamos tal cual.
-        if isinstance(value, str):
-            self.parts[key] = value.strip()
+        if value is None:
+            self.parts[key] = "" # Si es nulo, lo guardamos como texto vacío
+        elif isinstance(value, str):
+            self.parts[key] = value.strip() # Si es texto, limpiamos espacios
         else:
-            self.parts[key] = value
+            self.parts[key] = value # Si es Booleano (Checkbox), pasa tal cual
 
     def activate_img2video(self, filename):
         self.is_img2video = True
@@ -112,14 +111,16 @@ class GrokVideoPromptBuilder:
         
         # --- AUDIO COMPLEJO ---
         audio_prompt_parts = []
-        if p.get('audio_mood') and "No Music" not in p['audio_mood']:
+        if p.get('audio_mood') and "No Music" not in str(p['audio_mood']):
             audio_prompt_parts.append(f"Music style: {p['audio_mood']}")
-        if p.get('audio_env') and "No Background" not in p['audio_env']:
+        if p.get('audio_env') and "No Background" not in str(p['audio_env']):
             audio_prompt_parts.append(f"Environment sound: {p['audio_env']}")
-        if p.get('audio_sfx') and "None" not in p['audio_sfx']:
-            # Limpiamos el texto del selector (ej: quitar "(Pasos)")
-            if isinstance(p['audio_sfx'], str):
-                sfx_clean = p['audio_sfx'].split('(')[0].strip()
+        
+        # Lógica SFX segura
+        sfx_val = p.get('audio_sfx', '')
+        if sfx_val and "None" not in str(sfx_val):
+            if isinstance(sfx_val, str):
+                sfx_clean = sfx_val.split('(')[0].strip()
                 audio_prompt_parts.append(f"Specific SFX: {sfx_clean}")
             
         final_audio_string = ". ".join(audio_prompt_parts)
@@ -208,14 +209,12 @@ with st.sidebar:
 # PANEL PRINCIPAL
 st.title("🎬 Grok Video Builder")
 
-# Variables vacías
+# --- INICIALIZACIÓN DE VARIABLES (Vital para evitar fallos) ---
 final_sub = ""
 sty, act, det, env = "", "", "", ""
 lit, cam, ar = "", "", ""
 aud_mood, aud_env = "", ""
-
-# Variable especial para el SFX final
-final_sfx_selection = ""
+final_sfx_selection = "" # Aseguramos que esta variable siempre exista
 
 if st.session_state.uploaded_image_name:
     # --- MODO IMAGEN ---
@@ -244,7 +243,6 @@ if st.session_state.uploaded_image_name:
         with c_au1: aud_mood_img = st.selectbox("Estilo Musical", DEMO_AUDIO_MOOD)
         with c_au2: aud_env_img = st.selectbox("Ambiente de Fondo", DEMO_AUDIO_ENV)
         
-        # SELECTOR DE SFX INTELIGENTE
         st.markdown("##### Efectos Puntuales (SFX)")
         sfx_choice_img = st.selectbox("Selecciona Efecto", DEMO_SFX_COMMON, key="sfx_img")
         
@@ -256,20 +254,23 @@ if st.session_state.uploaded_image_name:
 
     st.markdown("---")
     if st.button("✨ GENERAR VIDEO-PROMPT (IMAGEN)", type="primary"):
-        b = GrokVideoPromptBuilder()
-        b.activate_img2video(st.session_state.uploaded_image_name)
-        b.set_field('keep_subject', keep_s)
-        b.set_field('keep_bg', keep_b)
-        b.set_field('img_action', translate_to_english(act_img))
-        b.set_field('camera', cam_img)
-        b.set_field('light', lit_img)
-        b.set_field('ar', ar_img)
-        b.set_field('audio_mood', aud_mood_img)
-        b.set_field('audio_env', aud_env_img)
-        b.set_field('audio_sfx', final_sfx_selection)
-        
-        st.session_state.generated_output = b.build()
-        st.session_state.history.append(st.session_state.generated_output)
+        try:
+            b = GrokVideoPromptBuilder()
+            b.activate_img2video(st.session_state.uploaded_image_name)
+            b.set_field('keep_subject', keep_s)
+            b.set_field('keep_bg', keep_b)
+            b.set_field('img_action', translate_to_english(act_img))
+            b.set_field('camera', cam_img)
+            b.set_field('light', lit_img)
+            b.set_field('ar', ar_img)
+            b.set_field('audio_mood', aud_mood_img)
+            b.set_field('audio_env', aud_env_img)
+            b.set_field('audio_sfx', final_sfx_selection)
+            
+            st.session_state.generated_output = b.build()
+            st.session_state.history.append(st.session_state.generated_output)
+        except Exception as e:
+            st.error(f"Error generando prompt: {e}")
 
 else:
     # --- MODO TEXTO ---
@@ -304,4 +305,50 @@ else:
         st.subheader("Dirección de Cámara")
         c1, c2 = st.columns(2)
         with c1: cam = st.selectbox("Movimiento de Cámara", DEMO_CAMERAS)
-        with c2: ar
+        with c2: ar = st.selectbox("Relación de Aspecto (Formato)", DEMO_ASPECT_RATIOS)
+
+    with tab_audio:
+        st.subheader("Diseño Sonoro por Capas")
+        c_au1, c_au2 = st.columns(2)
+        with c_au1:
+            aud_mood = st.selectbox("Banda Sonora / Mood", DEMO_AUDIO_MOOD)
+        with c_au2:
+            aud_env = st.selectbox("Atmósfera / Fondo", DEMO_AUDIO_ENV)
+            
+        st.markdown("##### Efectos Puntuales (SFX)")
+        sfx_choice = st.selectbox("Selecciona Efecto", DEMO_SFX_COMMON, key="sfx_txt")
+        
+        if "Custom" in sfx_choice:
+            custom_sfx_val = st.text_input("Describe el efecto sonoro:", key="custom_sfx_txt_input")
+            final_sfx_selection = translate_to_english(custom_sfx_val)
+        else:
+            final_sfx_selection = sfx_choice
+
+    st.markdown("---")
+    if st.button("✨ GENERAR PROMPT DE HISTORIA", type="primary"):
+        try:
+            b = GrokVideoPromptBuilder()
+            b.set_field('style', translate_to_english(sty))
+            b.set_field('subject', final_sub)
+            b.set_field('details', translate_to_english(det))
+            b.set_field('action', translate_to_english(act))
+            b.set_field('env', translate_to_english(env))
+            b.set_field('light', lit)
+            b.set_field('camera', cam)
+            b.set_field('ar', ar)
+            b.set_field('audio_mood', aud_mood)
+            b.set_field('audio_env', aud_env)
+            b.set_field('audio_sfx', final_sfx_selection)
+            
+            st.session_state.generated_output = b.build()
+            st.session_state.history.append(st.session_state.generated_output)
+        except Exception as e:
+            st.error(f"Error generando prompt: {e}")
+
+# --- ZONA DE RESULTADOS ---
+if st.session_state.generated_output:
+    st.markdown("---")
+    st.subheader("📝 Tu Prompt Final")
+    edited_prompt = st.text_area("Edita o corrige el texto aquí antes de copiar:", value=st.session_state.generated_output, height=150)
+    st.caption("👇 Copia el código final aquí:")
+    st.code(edited_prompt, language="text")
