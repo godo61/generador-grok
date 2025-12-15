@@ -227,24 +227,39 @@ with st.sidebar:
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio")
 
-# --- GUÍA DE AYUDA (ACTUALIZADA) ---
-with st.expander("📘 GUÍA DE USO & PROMPTS MAESTROS", expanded=False):
-    st.markdown("""
-    ### 🧬 1. Cómo extraer el "ADN" (Descripción Maestra)
-    Para que tus personajes y objetos sean consistentes, necesitas una descripción técnica perfecta.
-    Copia este prompt y pégalo en **ChatGPT, Grok o Gemini** junto con tu foto de referencia:
-    """)
-    st.code("""
-    Actúa como un Director de Arte de VFX. Analiza la imagen y genera una descripción técnica 'ADN' en INGLÉS (un solo párrafo denso).
+# --- GUÍA DE AYUDA (MEGA-PROMPT DE EXTRACCIÓN) ---
+with st.expander("📘 GUÍA DE USO & PROMPT MAESTRO DE EXTRACCIÓN (INGLÉS)", expanded=False):
+    st.markdown("### 🧬 MASTER PROMPT: Extracción de ADN Visual")
+    st.info("Copia este bloque y pégalo en **ChatGPT-4o, Claude 3.5 Sonnet o Midjourney /describe** junto con tu imagen de referencia. Este prompt generará la descripción técnica exacta que necesitas guardar en el 'Banco de ADN'.")
     
-    PARA PERSONAJES: Describe SOLO la fisionomía (estructura ósea, ojos, piel, cabello, cuerpo). NO describas ropa ni pose.
-    PARA OBJETOS: Describe materiales, desgaste, colores exactos y marca/modelo si aplica.
+    st.code("""
+    # ROLE
+    You are an expert Lead Character Artist and VFX Supervisor specializing in Generative AI prompting (Midjourney/Runway). Your goal is to reverse-engineer the "Visual DNA" of the subject in the image.
+
+    # TASK
+    Analyze the uploaded image and generate a highly technical, comma-separated description of the SUBJECT ONLY. 
+    Do NOT describe the background, action, or temporary lighting unless asked. Focus on the permanent features that make this subject unique.
+
+    # OUTPUT FORMAT
+    String of text, dense keywords, comma-separated.
+
+    # ANALYSIS CATEGORIES (Include these specific details):
+    1. DEMOGRAPHICS & BODY: Age range, precise ethnicity mix, gender, height estimate, somatotype (ectomorph/mesomorph/endomorph), muscle definition level.
+    2. FACE STRUCTURE: Face shape (square/oval/diamond), jawline definition (sharp/soft), cheekbone prominence, forehead height.
+    3. EYES: Exact color (e.g., 'piercing icy blue'), shape (almond/hooded/deep-set), eyebrow density and arch.
+    4. SKIN & TEXTURE: Complexion, visible pores, freckles, scars, stubble density, skin specular highlights (sweat/oil).
+    5. HAIR: Exact color code (e.g., 'raven black with midnight blue undertones'), cut style, texture (wavy/coarse), hairline.
+    6. KEY FEATURES: Distinguishing marks (tattoos, moles), nose shape (aquiline/button), lip thickness.
+
+    # EXAMPLE OUTPUT START
+    "Male, 30s, mixed Japanese-Caucasian heritage, lean ectomorph build, wire-rimmed glasses, sharp jawline, high cheekbones, stubble beard, textured messy undercut hair, dark hazel eyes, slight scar on left eyebrow..."
     """, language="text")
     
     st.markdown("""
-    ### 🛠️ 2. Solución de Problemas
-    * **¿Faltan personajes?** Si has borrado algo por error o la lista se ve rara, pulsa el botón **"🔄 Restaurar Fábrica"** en la barra lateral. Esto reiniciará la base de datos a su estado original (Ton y Freya).
-    * **¿No traduce?** Si no tienes internet o la librería falla, la app usará el texto en español.
+    ---
+    ### ⚠️ Solución de Problemas
+    * **Botón Restaurar Fábrica:** (Menú Lateral) Úsalo si borraste personajes importantes por error. Reinicia la lista de actores.
+    * **Start/End Frame:** Si usas 'Image-to-Video', sube la imagen inicial. La imagen final es opcional pero ayuda a guiar la animación.
     """)
 
 # PESTAÑAS
