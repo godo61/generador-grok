@@ -55,7 +55,7 @@ DEFAULT_PROPS = {
 # --- MEMORIA ---
 if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
-if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None # NUEVO
+if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 
 # Auto-Reparación de Memoria
@@ -110,7 +110,7 @@ class GrokVideoPromptBuilder:
         self.parts = {}
         self.is_img2video = False
         self.image_filename = ""
-        self.end_image_filename = None # NUEVO
+        self.end_image_filename = None
 
     def set_field(self, key, value):
         if value is None: self.parts[key] = ""
@@ -149,8 +149,6 @@ class GrokVideoPromptBuilder:
         segments = []
         if self.is_img2video:
             segments.append(f"Start Frame: '{self.image_filename}'.")
-            
-            # NUEVO: END FRAME
             if self.end_image_filename:
                 segments.append(f"End Frame: '{self.end_image_filename}'.")
             
@@ -220,8 +218,7 @@ with st.sidebar:
         st.image(u_file, caption="Inicio")
     else: st.session_state.uploaded_image_name = None
     
-    # NUEVO: END FRAME
-    u_end = st.file_uploader("End Frame (Final - Opcional)", type=["jpg", "png"])
+    u_end = st.file_uploader("End Frame (Final)", type=["jpg", "png"])
     if u_end:
         st.session_state.uploaded_end_frame_name = u_end.name
         st.image(u_end, caption="Final")
@@ -230,43 +227,24 @@ with st.sidebar:
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio")
 
-# --- GUÍA DE AYUDA (NUEVO) ---
-with st.expander("📘 GUÍA: Extracción de ADN y Flujo de Trabajo", expanded=False):
+# --- GUÍA DE AYUDA (ACTUALIZADA) ---
+with st.expander("📘 GUÍA DE USO & PROMPTS MAESTROS", expanded=False):
     st.markdown("""
-    ### 🧬 ¿Cómo extraer el ADN de tus personajes?
-    Esta app no "mira" tus fotos para aprender. Funciona como un **Almacén de Descripciones Maestras**.
-    Para conseguir la consistencia perfecta, debes extraer el "ADN" (descripción técnica) fuera de aquí y pegarlo en la barra lateral.
-
-    #### 📋 PASO 1: Copia este Prompt
-    Copia el siguiente texto y pégalo en **ChatGPT, Grok, Gemini o Claude** junto con tu foto de referencia:
+    ### 🧬 1. Cómo extraer el "ADN" (Descripción Maestra)
+    Para que tus personajes y objetos sean consistentes, necesitas una descripción técnica perfecta.
+    Copia este prompt y pégalo en **ChatGPT, Grok o Gemini** junto con tu foto de referencia:
     """)
-    
     st.code("""
-    Actúa como un Director de Arte experto en VFX y Continuidad. 
-    Analiza la imagen adjunta y genera una "Descripción de ADN Visual" extremadamente detallada y técnica en INGLÉS.
+    Actúa como un Director de Arte de VFX. Analiza la imagen y genera una descripción técnica 'ADN' en INGLÉS (un solo párrafo denso).
     
-    Quiero que te centres exclusivamente en:
-    1. FISIONOMÍA: Estructura ósea exacta, tipo de cuerpo (somatotipo), altura y peso estimados, textura de la piel (poros, imperfecciones).
-    2. RASGOS DISTINTIVOS: Color de ojos exacto, forma de la mandíbula, estilo de cabello (corte y textura).
-    3. ESTILO VISUAL: Tipo de iluminación (Rembrandt, volumétrica...), lente de cámara (85mm, f/1.8) y tipo de render (Octane, Unreal 5).
-    
-    NO describas la ropa, ni el fondo, ni la pose, a menos que sean inseparables del personaje.
-    El formato debe ser un solo párrafo denso y separado por comas.
+    PARA PERSONAJES: Describe SOLO la fisionomía (estructura ósea, ojos, piel, cabello, cuerpo). NO describas ropa ni pose.
+    PARA OBJETOS: Describe materiales, desgaste, colores exactos y marca/modelo si aplica.
     """, language="text")
     
     st.markdown("""
-    #### 📋 PASO 2: Guarda el ADN
-    1. Copia el resultado en inglés que te dé la IA.
-    2. Ve a la barra lateral de esta app (**⚙️ Config > 🧬 Banco de ADN**).
-    3. Pégalo en "Descripción Actor" y ponle nombre (ej: "TON Base").
-    4. ¡Listo! Ahora Ton siempre será Ton, le pongas la ropa que le pongas.
-    
-    ---
-    ### 🚀 Flujo de Trabajo Recomendado
-    1. **Define tus Activos:** Guarda tus actores y objetos clave (guitarras, naves) en el Banco de ADN primero.
-    2. **Compón la Escena:** Ve a la pestaña **"Historia"**, elige a tu Actor y dale un Objeto y Vestuario.
-    3. **Aplica Física:** Si es en el espacio o bajo el agua, ve a **"Física"** para activar la gravedad cero o las burbujas.
-    4. **Genera:** Copia el prompt final y llévalo a tu herramienta de vídeo (Runway, Luma, Kling).
+    ### 🛠️ 2. Solución de Problemas
+    * **¿Faltan personajes?** Si has borrado algo por error o la lista se ve rara, pulsa el botón **"🔄 Restaurar Fábrica"** en la barra lateral. Esto reiniciará la base de datos a su estado original (Ton y Freya).
+    * **¿No traduce?** Si no tienes internet o la librería falla, la app usará el texto en español.
     """)
 
 # PESTAÑAS
@@ -282,7 +260,6 @@ with t1:
         char_sel = st.selectbox("Actor", list(st.session_state.characters.keys()))
         final_sub = st.session_state.characters[char_sel]
     with c_b:
-        # CORREGIDO: Lista concatenada correctamente
         all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
         p_sel = st.selectbox("Objeto", all_props)
         if p_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[p_sel]
@@ -330,7 +307,6 @@ with t5:
 if st.button("✨ GENERAR PROMPT", type="primary"):
     b = GrokVideoPromptBuilder()
     if st.session_state.uploaded_image_name:
-        # Pasamos ambas imágenes si existen
         b.activate_img2video(
             st.session_state.uploaded_image_name, 
             st.session_state.uploaded_end_frame_name
