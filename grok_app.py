@@ -20,9 +20,8 @@ if 'generated_output' not in st.session_state: st.session_state.generated_output
 if 'characters' not in st.session_state:
     st.session_state.characters = {
         "Nada (Generar nuevo)": "",
-        "TON (Guitarra)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique, characterized by an elegant verticality and lean, wiry muscularity rather than bulk. He possesses a confident, architectural facial structure with high, defined cheekbones and a jawline that cuts a sharp geometric profile, overlaid with a texture of faint, authentic skin porosity and a meticulously groomed five o'clock shadow that maps the contours of his lower face. His hair is styled in a modern, textured quiff with a matte finish, dark chestnut strands caught in a chaotic yet deliberate motion, featuring a subtle fade at the temples that blends seamlessly into the skin. He is attired in a high-quality, charcoal-grey heavyweight cotton t-shirt that drapes loosely over his slender frame, revealing the definition of his clavicles and shoulders without clinging, paired with dark, raw selvedge denim jeans that exhibit realistic stiffness and indigo depth. The lighting is cinematic and moody, utilizing a soft-box key light from the upper left to carve out the depth of his facial features in a Rembrandt style, while a cool-toned rim light separates his dark silhouette from a blurred, neutral urban background, creating a volumetric atmosphere. The image quality exudes the characteristics of an 85mm prime lens photograph at f/1.8, capturing the wetness in his eyes and the tactile weave of the fabric with startling clarity, rendered in 8k resolution with a raw, unfiltered aesthetic. He is holding and playing a specific electric guitar model, adopting a passionate musician pose, fingers on the fretboard.""",
-        "TON (Micro)": """A hyper-realistic, medium-shot portrait of a striking male figure who embodies a razor-sharp 185 cm, 75 kg ecto-mesomorph physique, characterized by an elegant verticality and lean, wiry muscularity rather than bulk. He possesses a confident, architectural facial structure with high, defined cheekbones and a jawline that cuts a sharp geometric profile, overlaid with a texture of faint, authentic skin porosity and a meticulously groomed five o'clock shadow that maps the contours of his lower face. His hair is styled in a modern, textured quiff with a matte finish, dark chestnut strands caught in a chaotic yet deliberate motion, featuring a subtle fade at the temples that blends seamlessly into the skin. He is attired in a high-quality, charcoal-grey heavyweight cotton t-shirt that drapes loosely over his slender frame, revealing the definition of his clavicles and shoulders without clinging, paired with dark, raw selvedge denim jeans that exhibit realistic stiffness and indigo depth. The lighting is cinematic and moody, utilizing a soft-box key light from the upper left to carve out the depth of his facial features in a Rembrandt style, while a cool-toned rim light separates his dark silhouette from a blurred, neutral urban background, creating a volumetric atmosphere. The image quality exudes the characteristics of an 85mm prime lens photograph at f/1.8, capturing the wetness in his eyes and the tactile weave of the fabric with startling clarity, rendered in 8k resolution with a raw, unfiltered aesthetic. He is holding a vintage microphone close to his mouth, singing passionately with eyes slightly closed, performing on stage.""",
-        "Freya (Kayak)": """A hyper-realistic, cinematic medium shot of a 25-year-old female survivor with a statuesque, athletic 170cm and 60kg physique, exhibiting defined lean muscle mass and core tension typical of extreme exertion. She possesses a striking, symmetrical face with high cheekbones, a sharp jawline, and intense, piercing hazel eyes dilated with adrenaline; her skin texture is rendered with extreme fidelity, showcasing visible pores, vellus hair on the jawline, and uneven localized redness, all glistening with hyper-detailed water beads and sweat exhibiting realistic subsurface scattering. She is completely drenched; her heavy, dark brunette hair is matted and sodden, clinging flat against her skull and neck in distinct wet clumps, with stray strands sticking to her wet face. She is outfitted in a futuristic 'Aquatic Warcore' tactical wetsuit constructed from matte black Yamamoto 39-cell limestone neoprene featuring contrasting glossy geometric Glideskin chest panels, reinforced GBS seams, and a complex mil-spec nylon webbing harness system secured with metallic Cobra buckles and asymmetrical waterproof zippers. The scene is immersed in a turbulent marine environment during the blue hour, characterized by volumetric sea mist, driving rain, and dramatic cool-toned storm lighting that creates sharp specular highlights on the wet neoprene and skin, captured with the shallow depth of field of an 85mm f/1.8 lens, creating a raw, gritty, survivalist aesthetic in 8k resolution. She is paddling a Hyper-realistic expedition sea kayak, model Point 65 Freya 18. Geometry: Features a distinctive 'surfski-hybrid' silhouette with a razor-sharp, plumb vertical bow entry transitioning into a high-volume, bulbous foredeck designed to shed massive waves, contrasting with a tapered, low-profile stern section to minimize windage. Hull: Round hull cross-section with minimal rocker, optimized for speed, showcasing a seamless 'integrated keel rudder' ventral fin at the rear that blends organically into the carbon fiber hull structure. Cockpit: Large keyhole-shaped cockpit with a raised carbon rim, outfitted with a performance bucket seat. Storage & Hatches: Two large oval black rubber hatch covers positioned flush on the fore and aft decks. Rigging & Objects: The deck is laden with authentic 'expedition-ready' gear: a black waterproof North Water peaked deck bag strapped to the foredeck bungee matrix, a recessed Silva 70P compass, a spare split carbon paddle secured under the rear triangular bungee net. Livery & Text: High-gloss 'Black & Red' split colorway (Obsidian Black hull, Safety Red deck); bold, sans-serif white text 'FREYA' prominent on the bow flank; 'Point 65° N' logo on the side; a linear array of small colorful 'national flag stickers' representing circumnavigated countries and 'Thule' sponsor decals lining the cockpit area. Material & Light: Ray-traced gel coat finish with subsurface scattering, wet surface shaders reflecting a stormy grey ocean sky, salt spray residue on the black carbon hull. Art Style: 8k resolution, technical marine photography, Unreal Engine 5 render, highly detailed textures, dramatic atmosphere."""
+        "TON (Base)": """A hyper-realistic, medium-shot portrait of a striking male figure (185cm, 75kg), elegant verticality and lean muscularity. High cheekbones, sharp geometric jawline, faint skin porosity, groomed five o'clock shadow. Modern textured quiff hair, dark chestnut. Cinematic lighting.""",
+        "FREYA (Base)": """A hyper-realistic cinematic shot of a 25-year-old female survivor, statuesque athletic physique (170cm, 60kg). Striking symmetrical face, sharp jawline, intense hazel eyes. Wet skin texture, visible pores. Heavy dark brunette hair.""",
     }
 
 # --- FUNCIONES ---
@@ -37,25 +36,75 @@ def translate_to_english(text):
             return text
     return text
 
-# --- LISTAS DE OPCIONES ---
-DEMO_STYLES = ["Photorealistic 8k", "Anime / Manga", "3D Render (Octane)", "Oil Painting", "Vintage Film (VHS)", "Claymation", "Pixel Art (8-bit)", "Abstract / Experimental", "Surrealism", "Fantasy / RPG", "Cyberpunk", "Film Noir", "Watercolor"]
-DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark"]
-DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "1:1 (Square)", "21:9 (Ultrawide)"]
-DEMO_CAMERAS = ["Static", "Zoom In", "Zoom Out", "Dolly In", "Dolly Out", "Truck Left", "Truck Right", "Pedestal Up", "Pedestal Down", "Pan", "Tilt", "Orbit", "Handheld / Shake", "FPV Drone"]
+# --- LISTAS DE ACTIVOS (ASSETS) ---
 
-# Listas de Audio con CUSTOM en todas
-DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Cyberpunk Synthwave", "Lo-Fi Chill", "Horror / Suspense", "Upbeat", "Sad", "Heavy Metal", "Ambient Drone", "✏️ Custom / Other..."]
-DEMO_AUDIO_ENV = ["No Background", "City Traffic", "Heavy Rain", "Forest", "Ocean Waves", "Bar / Restaurant", "Space Station", "Battlefield", "Office", "✏️ Custom / Other..."]
-DEMO_SFX_COMMON = ["None", "Footsteps", "Rain drops", "Wind howling", "Explosion", "Gunfire", "Swords clashing", "Crowd cheering", "Camera shutter", "Keyboard typing", "Siren", "Heartbeat", "✏️ Custom / Other..."]
+DEMO_STYLES = ["Photorealistic 8k", "Cinematic", "IMAX Quality", "Anime", "3D Render (Octane)", "Vintage VHS", "Cyberpunk", "Film Noir"]
 
-# --- 🌊 MOTOR DE FÍSICA ---
+DEMO_ENVIRONMENTS = [
+    "✏️ Custom / Other... (Escribir)",
+    "🔴 Mars Surface (Red Planet, rocky, dusty)", 
+    "🛶 Dusi River (South Africa, muddy turbulent water)",
+    "🚀 International Space Station (Interior)",
+    "🌌 Deep Space Void (Stars background)",
+    "🌲 Mystic Forest",
+    "🏙️ Cyberpunk City Street",
+    "🏜️ Sahara Desert",
+    "🏟️ Olympic Stadium"
+]
+
+DEMO_WARDROBE = [
+    "✏️ Custom / Other... (Escribir)",
+    "👨‍🚀 NASA EVA Spacesuit (White, bulky, gold visor)",
+    "👽 Sci-Fi Sleek Spacesuit (Tight, futuristic armor)",
+    "🛶 Kayaking Gear (Life vest, lycra top, helmet)",
+    "🤿 Neoprene Wetsuit (Black, tactical)",
+    "👕 Casual (T-shirt & Jeans)",
+    "🤵 Formal Suit (Tuxedo)",
+    "🎸 Rock Star Outfit (Leather jacket)"
+]
+
+DEMO_PROPS = [
+    "None",
+    "✏️ Custom / Other... (Escribir)",
+    "🛶 Carbon Fiber Kayak Paddle",
+    "🎸 Electric Guitar",
+    "🎤 Vintage Microphone",
+    "🔫 Sci-Fi Blaster / Raygun",
+    "📱 Holographic Datapad",
+    "🧪 Glowing Vial",
+    "☕ Coffee Cup"
+]
+
+DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark", "Stark Space Sunlight"]
+DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)", "1:1 (Square)"]
+DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating Cam"]
+
+DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence (Space)", "✏️ Custom..."]
+DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
+DEMO_SFX_COMMON = ["None", "Thrusters firing", "Water splashing", "Paddle hitting water", "Breathing in helmet", "Radio comms beep", "Footsteps", "✏️ Custom..."]
+
+# --- ⚛️ MOTOR DE FÍSICA AMPLIADO ---
 PHYSICS_LOGIC = {
     "Neutral / None": [],
-    "🌊 Water (Surface)": ["Hydrodynamic water displacement", "Wet skin & clothing shaders", "Water droplets & splashing particles", "Reflective water surface", "Ripples expanding"],
-    "🤿 Underwater (Submerged)": ["Zero-gravity hair and fabric movement", "Caustics lighting patterns on skin", "Volumetric underwater light rays", "Rising air bubbles", "Suspended particles / Turbidity", "Muffled blurry background"],
-    "🌬️ Air / Wind (Storm/Flight)": ["Aerodynamic fabric flapping", "Hair whipping in wind", "Dust and debris swirling", "Motion blur on edges", "Turbulent atmosphere"],
-    "❄️ Snow / Ice (Cold)": ["Visible breath condensation / Fog", "Snow displacement footprints", "Frost texture on surfaces", "Falling snowflakes with depth of field", "Subsurface scattering on snow"],
-    "🔥 Heat / Desert": ["Heat haze distortion / Shimmer", "Sweat glistening on skin", "Dry dust clouds", "Harsh direct shadows"]
+    
+    "🌌 Space (Zero-G / Void)": [
+        "Zero-gravity floating objects/hair", "No air resistance", "High contrast stark lighting", "Deep black shadows", "Vacuum silence atmosphere", "Floating dust particles"
+    ],
+    "🔴 Mars / Planetary (Low G)": [
+        "Low gravity movement (Slow jumps)", "Red dust storms", "Haze and heat distortion", "Fine dust settling on surfaces", "Wind sweeping across barren terrain"
+    ],
+    "🌊 Water (Surface/River)": [
+        "Turbulent muddy water flow", "White water rapids foam", "Hydrodynamic splashes", "Wet fabric adhesion", "Light refraction on ripples"
+    ],
+    "🤿 Underwater (Submerged)": [
+        "Weightless suspension", "Caustics light patterns", "Rising bubbles", "Murky depth visibility", "Muffled movement"
+    ],
+    "🌬️ Air / Flight": [
+        "High velocity wind drag", "Clouds passing rapidly", "Fabric fluttering violently", "Motion blur", "Aerodynamic trails"
+    ],
+    "❄️ Snow / Ice": [
+        "Condensation breath", "Deep snow footprints", "Falling snow flakes", "Ice reflection", "Pale lighting"
+    ]
 }
 
 # --- MOTOR DE PROMPTS ---
@@ -78,69 +127,101 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         
-        # --- AUDIO ---
-        audio_prompt_parts = []
-        # Música
-        music_val = p.get('audio_mood', '')
-        if music_val and "No Music" not in music_val and "Custom" not in music_val:
-            audio_prompt_parts.append(f"Music style: {music_val}")
-        elif music_val and "Custom" not in music_val:
-             pass # Si es No Music
-        else:
-             # Si es custom, el valor ya viene traducido en el campo 'audio_mood' desde la interfaz?
-             # AJUSTE: En la interfaz pasaremos el valor FINAL a 'audio_mood', así que aquí solo chequeamos que no sea vacío
-             if music_val and "No Music" not in music_val:
-                 audio_prompt_parts.append(f"Music style: {music_val}")
-        
-        # Ambiente
-        env_val = p.get('audio_env', '')
-        if env_val and "No Background" not in env_val:
-             audio_prompt_parts.append(f"Environment sound: {env_val}")
+        # --- PROCESAMIENTO DE CAMPOS CUSTOM ---
+        # 1. Wardrobe
+        wardrobe_txt = ""
+        if p.get('wardrobe') and "Custom" not in p['wardrobe']:
+            wardrobe_txt = p['wardrobe'].split('(')[0].strip() # Limpiamos paréntesis
+        elif p.get('wardrobe_custom'):
+            wardrobe_txt = p['wardrobe_custom']
+
+        # 2. Props
+        props_txt = ""
+        if p.get('props') and "None" not in p['props'] and "Custom" not in p['props']:
+             props_txt = p['props'].split('(')[0].strip()
+        elif p.get('props_custom'):
+             props_txt = p['props_custom']
+
+        # 3. Environment
+        env_txt = ""
+        if p.get('env') and "Custom" not in p['env']:
+             env_txt = p['env'].split('(')[0].strip()
+        elif p.get('env_custom'):
+             env_txt = p['env_custom']
+
+        # --- AUDIO LOGIC ---
+        audio_parts = []
+        # Music
+        m_val = p.get('audio_mood')
+        if m_val and "Custom" in m_val and p.get('audio_mood_custom'):
+             audio_parts.append(f"Music: {p['audio_mood_custom']}")
+        elif m_val and "No Music" not in m_val:
+             audio_parts.append(f"Music: {m_val}")
+
+        # Env Sound
+        e_val = p.get('audio_env')
+        if e_val and "Custom" in e_val and p.get('audio_env_custom'):
+             audio_parts.append(f"Ambience: {p['audio_env_custom']}")
+        elif e_val and "No Background" not in e_val:
+             audio_parts.append(f"Ambience: {e_val}")
 
         # SFX
-        sfx_val = p.get('audio_sfx', '')
-        if sfx_val and "None" not in sfx_val:
-             audio_prompt_parts.append(f"Specific SFX: {sfx_val}")
-            
-        final_audio = ". ".join(audio_prompt_parts)
+        s_val = p.get('audio_sfx')
+        if s_val and "Custom" in s_val and p.get('audio_sfx_custom'):
+             audio_parts.append(f"SFX: {p['audio_sfx_custom']}")
+        elif s_val and "None" not in s_val:
+             audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        
+        final_audio = ". ".join(audio_parts)
 
         # --- FÍSICA ---
         physics_prompt = ""
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
-            medium_clean = p['physics_medium'].split('(')[0].strip()
-            details = p.get('physics_details', [])
+            medium = p['physics_medium'].split('(')[0].strip()
+            details = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
             if details:
-                details_clean = [d.split('(')[0].strip() for d in details]
-                physics_str = ", ".join(details_clean)
-                physics_prompt = f"Physics simulation: {medium_clean} environment featuring {physics_str}"
+                physics_prompt = f"Physics Engine: {medium} simulation ({', '.join(details)})"
 
-        # --- CONSTRUCCIÓN ---
+        # --- CONSTRUCCIÓN DEL PROMPT ---
         segments = []
+        
         if self.is_img2video:
-            segments.append(f"Based on the uploaded image '{self.image_filename}'.")
+            segments.append(f"Image-to-Video based on '{self.image_filename}'.")
             keep = []
-            if p.get('keep_subject'): keep.append("the main subject's appearance")
-            if p.get('keep_bg'): keep.append("the background composition")
-            if keep: segments.append("Strictly maintain " + " and ".join(keep) + ".")
-            
-            if p.get('img_action'): segments.append(p['img_action'])
+            if p.get('keep_subject'): keep.append("Main Subject")
+            if p.get('keep_bg'): keep.append("Background")
+            if keep: segments.append(f"Maintain: {', '.join(keep)}.")
+            if p.get('img_action'): segments.append(f"Action: {p['img_action']}")
         else:
-            subj = p.get('subject', '')
-            if p.get('details'): subj += f", wearing {p['details']}"
+            # Construcción del Sujeto + Vestuario + Props
+            base_subj = p.get('subject', '')
             
-            visual_action = []
-            if subj: visual_action.append(subj)
-            if p.get('action'): visual_action.append(f"currently {p['action']}" if visual_action else f"A scene showing {p['action']}")
-            if p.get('env'): visual_action.append(f"set within a {p['env']}")
+            # Inyección de Vestuario
+            if wardrobe_txt:
+                base_subj += f", wearing {wardrobe_txt}"
             
-            scene = ", ".join(visual_action)
-            if scene: segments.append(scene + ".")
-            if p.get('style'): segments.append(f"A {p['style']} style video.")
+            # Inyección de Props
+            if props_txt:
+                base_subj += f", holding/using {props_txt}"
 
+            # Inyección de Detalles extra
+            if p.get('details'):
+                 base_subj += f", {p['details']}"
+
+            visual_block = []
+            if base_subj: visual_block.append(base_subj)
+            if p.get('action'): visual_block.append(f"Action: {p['action']}")
+            if env_txt: visual_block.append(f"Location: {env_txt}")
+            
+            scene = ". ".join(visual_block)
+            if scene: segments.append(scene + ".")
+            if p.get('style'): segments.append(f"Style: {p['style']}.")
+
+        # Añadidos Técnicos
         if p.get('light'): segments.append(f"Lighting: {p['light']}.")
-        if p.get('camera'): segments.append(f"Camera movement: {p['camera']}.")
+        if p.get('camera'): segments.append(f"Camera: {p['camera']}.")
         if physics_prompt: segments.append(physics_prompt + ".")
-        if final_audio: segments.append(f"Audio atmosphere: {final_audio}.")
+        if final_audio: segments.append(f"Audio: {final_audio}.")
         if p.get('ar'): segments.append(f"--ar {p['ar'].split(' ')[0]}")
 
         return re.sub(' +', ' ', " ".join(segments)).strip()
@@ -148,9 +229,9 @@ class GrokVideoPromptBuilder:
 # --- INTERFAZ ---
 with st.sidebar:
     st.header("🧬 Mis Personajes")
-    with st.expander("Añadir Personaje Nuevo"):
+    with st.expander("Nuevo Personaje"):
         new_name = st.text_input("Nombre")
-        new_desc = st.text_area("Descripción Visual")
+        new_desc = st.text_area("Descripción Base (Cuerpo/Cara)")
         if st.button("Guardar"):
             if new_name and new_desc:
                 st.session_state.characters[new_name] = translate_to_english(new_desc)
@@ -173,12 +254,13 @@ with st.sidebar:
 # PANEL PRINCIPAL
 st.title("🎬 Grok Video Builder")
 
-# Vars default
+# INICIALIZACIÓN DE VARIABLES
 keep_s, keep_b = True, True
 act_img = ""
 final_sub, act, det = "", "", ""
-sty, env, lit, cam, ar = "", "", "", "", ""
-final_music, final_env, final_sfx = "", "", ""
+sty, lit, cam, ar = "", "", "", ""
+ward_final, props_final, env_final = "", "", ""
+mus_final, env_aud_final, sfx_final = "", "", ""
 phy_med, phy_det = "Neutral / None", []
 
 if st.session_state.uploaded_image_name:
@@ -190,45 +272,32 @@ if st.session_state.uploaded_image_name:
         with c1:
             keep_s = st.checkbox("Mantener Sujeto", True)
             keep_b = st.checkbox("Mantener Fondo", True)
-        with c2: act_img = st.text_area("Acción", placeholder="Ej: sonriendo")
-            
+        with c2: act_img = st.text_area("Acción", placeholder="Ej: flotando en gravedad cero")
+
     with t2:
-        phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="phy_m_img")
-        phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med], key="phy_d_img")
-        
+        phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="pm_i")
+        phy_det = st.multiselect("Efectos", PHYSICS_LOGIC[phy_med], key="pd_i")
+
     with t3:
         c1, c2, c3 = st.columns(3)
-        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_img")
-        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_img")
-        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_img")
+        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_i")
+        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_i")
+        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_i")
 
     with t4:
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1: 
-            # MUSICA CON CUSTOM
-            mus_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="am_img")
-            if "Custom" in mus_ch:
-                final_music = translate_to_english(st.text_input("Otra Música", key="cust_am_img"))
-            else:
-                final_music = mus_ch
-
-        with c2: 
-            # AMBIENTE CON CUSTOM
-            env_choice = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="ae_img")
-            if "Custom" in env_choice:
-                final_env = translate_to_english(st.text_input("Otro Ambiente", key="cust_ae_img"))
-            else:
-                final_env = env_choice
-
-        # SFX CON CUSTOM
-        sfx_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="sfx_img")
-        if "Custom" in sfx_ch:
-            final_sfx = translate_to_english(st.text_input("Otro SFX", key="cust_sfx_img"))
-        else:
-            final_sfx = sfx_ch.split('(')[0].strip() if "(" in sfx_ch else sfx_ch
+            m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_i")
+            mus_final = translate_to_english(st.text_input("Cuál:", key="mc_i")) if "Custom" in m_ch else m_ch
+        with c2:
+            e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_i")
+            env_aud_final = translate_to_english(st.text_input("Cuál:", key="ec_i")) if "Custom" in e_ch else e_ch
+        with c3:
+            s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_i")
+            sfx_final = translate_to_english(st.text_input("Cuál:", key="sc_i")) if "Custom" in s_ch else s_ch
 
     if st.button("✨ GENERAR (IMG)", type="primary"):
-        with st.spinner("Procesando..."):
+        with st.spinner("Creando..."):
             try:
                 b = GrokVideoPromptBuilder()
                 b.activate_img2video(st.session_state.uploaded_image_name)
@@ -240,82 +309,115 @@ if st.session_state.uploaded_image_name:
                 b.set_field('camera', cam)
                 b.set_field('light', lit)
                 b.set_field('ar', ar)
-                b.set_field('audio_mood', final_music) # Usamos la variable final
-                b.set_field('audio_env', final_env)    # Usamos la variable final
-                b.set_field('audio_sfx', final_sfx)    # Usamos la variable final
+                b.set_field('audio_mood', mus_final) # Pasamos valor directo ya resuelto
+                b.set_field('audio_env', env_aud_final)
+                b.set_field('audio_sfx', sfx_final)
                 res = b.build()
                 st.session_state.generated_output = res
                 st.session_state.history.append(res)
             except Exception as e: st.error(str(e))
 
 else:
-    # MODO TEXTO
-    t1, t2, t3, t4, t5 = st.tabs(["📝 Historia", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
+    # MODO TEXTO / HISTORIA
+    t1, t2, t3, t4, t5 = st.tabs(["📝 Historia & Assets", "⚛️ Física", "🎨 Visual", "🎥 Técnica", "🎵 Audio"])
     
     with t1:
-        char_sel = st.selectbox("Actor", list(st.session_state.characters.keys()))
-        final_sub = st.session_state.characters[char_sel] if st.session_state.characters[char_sel] else translate_to_english(st.text_input("Sujeto"))
+        st.subheader("Protagonista")
+        char_sel = st.selectbox("Actor Base", list(st.session_state.characters.keys()))
+        final_sub = st.session_state.characters[char_sel] if st.session_state.characters[char_sel] else translate_to_english(st.text_input("Sujeto Base"))
+        
+        st.subheader("Vestuario y Atrezzo (Assets)")
         c1, c2 = st.columns(2)
-        with c1: act = st.text_input("Acción")
-        with c2: det = st.text_input("Detalles")
+        with c1:
+            w_ch = st.selectbox("Vestuario (Wardrobe)", DEMO_WARDROBE)
+            if "Custom" in w_ch:
+                b.set_field('wardrobe_custom', translate_to_english(st.text_input("Describe Ropa", key="wc_t")))
+            else:
+                b.set_field('wardrobe', w_ch)
+        with c2:
+            p_ch = st.selectbox("Objeto (Prop)", DEMO_PROPS)
+            if "Custom" in p_ch:
+                b.set_field('props_custom', translate_to_english(st.text_input("Describe Objeto", key="pc_t")))
+            else:
+                b.set_field('props', p_ch)
+
+        st.subheader("Acción")
+        act = st.text_input("¿Qué está haciendo?", placeholder="Ej: caminando hacia el cohete")
+        det = st.text_input("Detalles extra")
 
     with t2:
-        phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="phy_m_txt")
-        phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med], key="phy_d_txt")
+        phy_med = st.selectbox("Entorno Físico", list(PHYSICS_LOGIC.keys()), key="pm_t")
+        phy_det = st.multiselect("Efectos Físicos", PHYSICS_LOGIC[phy_med], key="pd_t")
 
     with t3:
         c1, c2 = st.columns(2)
         with c1: sty = st.selectbox("Estilo", DEMO_STYLES)
-        with c2: env = st.text_input("Lugar")
+        with c2:
+            # ENTORNO VISUAL
+            env_ch = st.selectbox("Lugar / Entorno", DEMO_ENVIRONMENTS)
+            if "Custom" in env_ch:
+                b.set_field('env_custom', translate_to_english(st.text_input("Describe Lugar", key="ec_txt")))
+            else:
+                b.set_field('env', env_ch)
 
     with t4:
         c1, c2, c3 = st.columns(3)
-        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_txt")
-        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_txt")
-        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_txt")
+        with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS, key="c_t")
+        with c2: lit = st.selectbox("Luz", DEMO_LIGHTING, key="l_t")
+        with c3: ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS, key="a_t")
 
     with t5:
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1: 
-            # MUSICA CON CUSTOM
-            mus_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="am_txt")
-            if "Custom" in mus_ch:
-                final_music = translate_to_english(st.text_input("Otra Música", key="cust_am_txt"))
-            else:
-                final_music = mus_ch
-        with c2: 
-            # AMBIENTE CON CUSTOM
-            env_choice = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="ae_txt")
-            if "Custom" in env_choice:
-                final_env = translate_to_english(st.text_input("Otro Ambiente", key="cust_ae_txt"))
-            else:
-                final_env = env_choice
-
-        # SFX CON CUSTOM
-        sfx_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="sfx_txt")
-        if "Custom" in sfx_ch:
-            final_sfx = translate_to_english(st.text_input("Otro SFX", key="cust_sfx_txt"))
-        else:
-            final_sfx = sfx_ch.split('(')[0].strip() if "(" in sfx_ch else sfx_ch
+            m_ch = st.selectbox("Música", DEMO_AUDIO_MOOD, key="m_t")
+            if "Custom" in m_ch: b.set_field('audio_mood_custom', translate_to_english(st.text_input("Cuál:", key="mc_t")))
+            else: b.set_field('audio_mood', m_ch)
+        with c2:
+            e_ch = st.selectbox("Ambiente", DEMO_AUDIO_ENV, key="e_t")
+            if "Custom" in e_ch: b.set_field('audio_env_custom', translate_to_english(st.text_input("Cuál:", key="aec_t")))
+            else: b.set_field('audio_env', e_ch)
+        with c3:
+            s_ch = st.selectbox("SFX", DEMO_SFX_COMMON, key="s_t")
+            if "Custom" in s_ch: b.set_field('audio_sfx_custom', translate_to_english(st.text_input("Cuál:", key="sc_t")))
+            else: b.set_field('audio_sfx', s_ch)
 
     if st.button("✨ GENERAR (TXT)", type="primary"):
-        with st.spinner("Procesando..."):
+        with st.spinner("Creando..."):
             try:
-                b = GrokVideoPromptBuilder()
-                b.set_field('subject', final_sub)
-                b.set_field('action', translate_to_english(act))
-                b.set_field('details', translate_to_english(det))
-                b.set_field('physics_medium', phy_med)
-                b.set_field('physics_details', phy_det)
-                b.set_field('style', translate_to_english(sty))
-                b.set_field('env', translate_to_english(env))
-                b.set_field('camera', cam)
-                b.set_field('light', lit)
-                b.set_field('ar', ar)
-                b.set_field('audio_mood', final_music) # Usamos la variable final
-                b.set_field('audio_env', final_env)    # Usamos la variable final
-                b.set_field('audio_sfx', final_sfx)    # Usamos la variable final
-                res = b.build()
+                # Instancia local
+                b_run = GrokVideoPromptBuilder()
+                
+                # Asignar campos simples
+                b_run.set_field('subject', final_sub)
+                b_run.set_field('action', translate_to_english(act))
+                b_run.set_field('details', translate_to_english(det))
+                b_run.set_field('style', translate_to_english(sty))
+                b_run.set_field('camera', cam)
+                b_run.set_field('light', lit)
+                b_run.set_field('ar', ar)
+                b_run.set_field('physics_medium', phy_med)
+                b_run.set_field('physics_details', phy_det)
+
+                # Asignar campos complejos desde variables temporales si existen
+                if 'wardrobe_custom' in b.parts: b_run.set_field('wardrobe_custom', b.parts['wardrobe_custom'])
+                else: b_run.set_field('wardrobe', w_ch)
+                
+                if 'props_custom' in b.parts: b_run.set_field('props_custom', b.parts['props_custom'])
+                else: b_run.set_field('props', p_ch)
+                
+                if 'env_custom' in b.parts: b_run.set_field('env_custom', b.parts['env_custom'])
+                else: b_run.set_field('env', env_ch)
+
+                if 'audio_mood_custom' in b.parts: b_run.set_field('audio_mood_custom', b.parts['audio_mood_custom'])
+                else: b_run.set_field('audio_mood', m_ch)
+
+                if 'audio_env_custom' in b.parts: b_run.set_field('audio_env_custom', b.parts['audio_env_custom'])
+                else: b_run.set_field('audio_env', e_ch)
+
+                if 'audio_sfx_custom' in b.parts: b_run.set_field('audio_sfx_custom', b.parts['audio_sfx_custom'])
+                else: b_run.set_field('audio_sfx', s_ch)
+
+                res = b_run.build()
                 st.session_state.generated_output = res
                 st.session_state.history.append(res)
             except Exception as e: st.error(str(e))
