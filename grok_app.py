@@ -47,7 +47,14 @@ if 'generated_output' not in st.session_state: st.session_state.generated_output
 
 # Auto-Reparación
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
+else:
+    for k, v in DEFAULT_CHARACTERS.items():
+        if k not in st.session_state.characters: st.session_state.characters[k] = v
+
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
+else:
+    for k, v in DEFAULT_PROPS.items():
+        if k not in st.session_state.custom_props: st.session_state.custom_props[k] = v
 
 # --- FUNCIONES ---
 def translate_to_english(text):
@@ -57,8 +64,7 @@ def translate_to_english(text):
         except: return str(text)
     return str(text)
 
-# --- LISTAS (OPTIMIZADAS PARA GROK) ---
-# Grok prefiere estilos descriptivos, no solo keywords
+# --- LISTAS (RESTAURADAS TODAS) ---
 DEMO_STYLES = [
     "Hyper-realistic Photography (Flux Style)", 
     "Cinematic Film Still (Kodak Portra)", 
@@ -74,12 +80,24 @@ DEMO_LIGHTING = ["soft cinematic lighting", "harsh volumetric sunlight", "neon c
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "9:16 (Portrait)", "21:9 (Ultrawide)", "1:1 (Square)"]
 DEMO_CAMERAS = ["shot on 35mm lens", "wide-angle GoPro shot", "telephoto 85mm portrait", "low-angle dynamic shot", "top-down drone view"]
 
-# SONIDO
+# ¡AQUÍ ESTABAN LOS FALTANTES!
+DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad"]
+DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
+
 DEMO_AUDIO_MOOD = ["No Music", "Hans Zimmer Style Orchestral", "Dark Synthwave", "Intense Suspense", "Upbeat Rock", "Silence"]
 DEMO_SFX_COMMON = ["None", "Thrusters firing", "Water splashing", "Heavy breathing", "Footsteps on concrete"]
 
+# --- FÍSICA ---
+PHYSICS_LOGIC = {
+    "Neutral": [],
+    "🌌 Space (Zero-G)": ["Zero-gravity floating", "No air resistance", "Stark lighting", "Vacuum silence"],
+    "🔴 Mars (Low G)": ["Low gravity movement", "Red dust storms", "Heat distortion", "Dust settling"],
+    "🌊 Water (River)": ["Turbulent flow", "White water foam", "Wet fabric adhesion", "Reflections"],
+    "🤿 Underwater": ["Weightless suspension", "Caustics", "Rising bubbles", "Murky visibility"],
+    "🌬️ Air / Flight": ["High wind drag", "Fabric fluttering", "Motion blur", "Aerodynamic trails"]
+}
+
 # --- PLANTILLAS GROK (FLUENT STYLE) ---
-# Estas plantillas usan conectores naturales, clave para Grok 2 / Flux
 NARRATIVE_TEMPLATES = {
     "Libre": "",
     "📸 Retrato Cinematográfico": "A cinematic medium shot of [SUBJECT] looking directly at the camera. The background is [ENV]. The lighting is [LIGHT], highlighting the skin texture.",
@@ -115,9 +133,6 @@ class GrokVideoPromptBuilder:
             prompt.append("Maintain strict visual consistency with the reference image.")
 
         # --- 2. CONSTRUCCIÓN GRAMATICAL (GROK STYLE) ---
-        # Grok prefiere: "Sujeto + Acción + Entorno + Luz" en una frase fluida.
-        
-        # Preparar componentes
         subject = p.get('subject', 'A subject')
         wardrobe = p.get('wardrobe_custom') or p.get('wardrobe', '')
         if "Custom" in wardrobe: wardrobe = ""
@@ -129,24 +144,20 @@ class GrokVideoPromptBuilder:
         env = p.get('env_custom') or p.get('env', '')
         if "Custom" in env: env = ""
         
-        # In-Image Text (Nuevo para Grok)
         text_overlay = p.get('text_overlay', '')
 
         # --- ENSAMBLAJE FLUENT ---
-        # Comenzamos la frase maestra
         main_sentence = ""
         
-        # Si hay plantilla narrativa, úsala como base
         if p.get('narrative_mode') and action:
             # Reemplazos inteligentes en la plantilla
             narrative = action
             narrative = narrative.replace("[SUBJECT]", subject)
             narrative = narrative.replace("[ENV]", env if env else "a neutral background")
             narrative = narrative.replace("[LIGHT]", p.get('light', 'natural light'))
-            narrative = narrative.replace("[ACTION]", "acting") # Fallback
+            narrative = narrative.replace("[ACTION]", "acting") 
             narrative = narrative.replace("[CAM]", p.get('camera', 'cinematic angle'))
             
-            # Añadir detalles de vestuario/props si no están en la narrativa
             details = []
             if wardrobe: details.append(f"wearing {wardrobe}")
             if props: details.append(f"holding {props}")
@@ -171,35 +182,36 @@ class GrokVideoPromptBuilder:
         prompt.append(main_sentence)
 
         # --- 3. DETALLES ESPECÍFICOS GROK ---
-        # Texto en imagen
         if text_overlay:
             prompt.append(f"The text '{text_overlay}' is clearly visible in the scene, rendered in a realistic typography.")
 
-        # Estilo y Cámara
         tech_sentence = ""
         if p.get('style'): tech_sentence += f"The image aesthetic is {p['style']}."
         if p.get('camera'): tech_sentence += f" Shot with a {p['camera']}."
         if tech_sentence: prompt.append(tech_sentence)
 
-        # Física (Si aplica)
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
             med = p['physics_medium'].split('(')[0].strip()
             dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
             if dets: prompt.append(f"Physics Simulation: {med} environment featuring {', '.join(dets)}.")
 
-        # --- 4. AUDIO (SOLO SI ES VIDEO) ---
+        # --- 4. AUDIO ---
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
         if m_val and "No Music" not in m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
+        
+        # Audio Env (Restaurado)
+        e_val = p.get('audio_env_custom') or p.get('audio_env')
+        if e_val and "No Background" not in e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
+
         s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
         if s_val and "None" not in s_val and "Custom" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
         
         if audio_parts: prompt.append(f"AUDIO ATMOSPHERE: {'. '.join(audio_parts)}.")
 
-        # --- 5. PARÁMETROS TÉCNICOS ---
+        # --- 5. TÉCNICO ---
         if p.get('ar'): prompt.append(f"--ar {p['ar'].split(' ')[0]}")
 
-        # Unir todo con saltos de línea para claridad
         return "\n\n".join(prompt)
 
 # --- INTERFAZ ---
@@ -249,11 +261,10 @@ st.title("🎬 Grok Production Studio (Imagine AI Edition)")
 
 with st.expander("📘 GUÍA DE PROMPTING (GROK/FLUX)", expanded=False):
     st.markdown("""
-    **Filosofía Grok Imagine AI:** Este modelo prefiere descripciones fluidas y naturales, no listas de palabras clave.
-    * **MAL:** Man, beard, space, 8k, cinematic.
+    **Filosofía Grok Imagine AI:** Este modelo prefiere descripciones fluidas y naturales.
+    * **MAL:** Man, beard, space, 8k.
     * **BIEN:** A cinematic shot of a man with a beard floating in deep space.
-    
-    **Texto en Imagen:** Grok es capaz de escribir. Usa el campo "Texto en Imagen" para carteles, camisetas o logos.
+    **Texto en Imagen:** Grok escribe bien. Usa el campo "Texto en Imagen" para carteles o logos.
     """)
 
 # PESTAÑAS
@@ -261,7 +272,7 @@ t1, t2, t3, t4, t5 = st.tabs(["📝 Narrativa", "🎒 Assets", "⚛️ Física",
 
 # VARS
 final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
-mus_vid, sfx_vid, text_overlay = "", "", ""
+mus_vid, env_vid, sfx_vid, text_overlay = "", "", "", ""
 
 with t1:
     c_a, c_b = st.columns(2)
@@ -272,7 +283,6 @@ with t1:
         final_sub = "" if "📷" in char_sel else st.session_state.characters[char_sel]
     
     with c_b:
-        # Selector de Plantillas Grok
         tpl = st.selectbox("Plantilla Narrativa (Grok Style)", list(NARRATIVE_TEMPLATES.keys()))
         tpl_txt = NARRATIVE_TEMPLATES[tpl]
 
@@ -280,12 +290,12 @@ with t1:
     act_val = st.text_area("Describe qué ocurre (Rellena los corchetes si usas plantilla):", value=tpl_txt, height=120, placeholder="E.g., A massive elephant runs towards the camera...")
     final_act = translate_to_english(act_val)
     
-    # NUEVO: TEXTO EN IMAGEN
     text_overlay = st.text_input("🔡 Texto dentro de la imagen (Opcional)", placeholder="Ej: 'SPACE CORP' en un neón")
 
 with t2:
     c1, c2 = st.columns(2)
     with c1:
+        # AQUI ESTABA EL ERROR, AHORA DEMO_PROPS EXISTE
         all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
         p_sel = st.selectbox("Objeto", all_props)
         if p_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[p_sel]
@@ -313,11 +323,14 @@ with t4:
         ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
 
 with t5:
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1: 
         m_sel = st.selectbox("Música", DEMO_AUDIO_MOOD)
         mus_vid = translate_to_english(st.text_input("Mus. Custom", key="mc")) if "Custom" in m_sel else m_sel
     with c2:
+        e_aud = st.selectbox("Ambiente", DEMO_AUDIO_ENV)
+        env_vid = translate_to_english(st.text_input("Amb. Custom", key="ec")) if "Custom" in e_aud else e_aud
+    with c3:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
@@ -327,8 +340,7 @@ if st.button("✨ GENERAR PROMPT (GROK FORMAT)", type="primary"):
     if st.session_state.uploaded_image_name:
         b.activate_img2video(st.session_state.uploaded_image_name, st.session_state.uploaded_end_frame_name)
     
-    # Enviamos datos al motor inteligente
-    b.set_field('narrative_mode', True) # Siempre True en esta versión Grok
+    b.set_field('narrative_mode', True) 
     b.set_field('subject', final_sub)
     b.set_field('action', final_act)
     b.set_field('text_overlay', translate_to_english(text_overlay))
@@ -345,6 +357,7 @@ if st.button("✨ GENERAR PROMPT (GROK FORMAT)", type="primary"):
     b.set_field('ar', ar)
     
     b.set_field('audio_mood', mus_vid)
+    b.set_field('audio_env', env_vid)
     b.set_field('audio_sfx', sfx_vid)
     
     res = b.build()
