@@ -77,6 +77,19 @@ DEMO_WARDROBE = ["✏️ Custom...", "👨‍🚀 NASA Spacesuit", "👽 Sci-Fi 
 DEMO_LIGHTING = ["Natural Daylight", "Cinematic / Dramatic", "Cyberpunk / Neon", "Studio Lighting", "Golden Hour", "Low Key / Dark", "Stark Space Sunlight"]
 DEMO_CAMERAS = ["Static", "Zoom In/Out", "Dolly In/Out", "Truck Left/Right", "Orbit", "Handheld / Shake", "FPV Drone", "Zero-G Floating"]
 
+# --- ¡AQUÍ ESTABA EL ERROR! HE REINTRODUCIDO DEMO_PROPS ---
+DEMO_PROPS = [
+    "None",
+    "✏️ Custom...",
+    "🛶 Carbon Fiber Kayak Paddle",
+    "🎸 Electric Guitar",
+    "🎤 Vintage Microphone",
+    "🔫 Sci-Fi Blaster / Raygun",
+    "📱 Holographic Datapad",
+    "🧪 Glowing Vial",
+    "☕ Coffee Cup"
+]
+
 # AUDIO LISTS
 DEMO_AUDIO_MOOD = ["No Music", "Cinematic Orchestral", "Sci-Fi Synth", "Tribal Drums", "Suspense", "Upbeat", "Silence", "✏️ Custom..."]
 DEMO_AUDIO_ENV = ["No Background", "Mars Wind", "River Rapids", "Space Station Hum", "City Traffic", "✏️ Custom..."]
@@ -223,6 +236,7 @@ final_act = ""
 final_env = ""
 final_ward = ""
 final_prop = ""
+det_raw = ""
 
 with t1:
     col_a, col_b = st.columns(2)
@@ -236,6 +250,7 @@ with t1:
     with col_b:
         st.markdown("##### 🎒 Utilería (Props)")
         # Selector Híbrido: Lista Demo + Objetos Guardados (ADN)
+        # CORREGIDO: DEMO_PROPS ya está definido arriba
         prop_options = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS[2:]
         p_sel = st.selectbox("Objeto en mano", prop_options)
         
@@ -288,6 +303,9 @@ with t5:
 # BOTÓN GENERAR VIDEO
 if st.button("✨ GENERAR PROMPT DE VIDEO", type="primary"):
     b = GrokVideoPromptBuilder()
+    if st.session_state.uploaded_image_name:
+        b.activate_img2video(st.session_state.uploaded_image_name)
+    
     b.set_field('subject', final_sub)
     b.set_field('props', final_prop)
     b.set_field('wardrobe', final_ward)
