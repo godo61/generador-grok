@@ -9,7 +9,7 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🔥")
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
 # --- ESTILOS CSS ---
 def apply_custom_styles(dark_mode=False):
@@ -23,7 +23,6 @@ def apply_custom_styles(dark_mode=False):
         [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
         [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; }}
-        /* Estilo para el toggle de intensificador */
         [data-testid="sttoggle"] span {{ font-weight: bold; color: #FF4B4B; }}
         </style>
     """, unsafe_allow_html=True)
@@ -32,13 +31,11 @@ def apply_custom_styles(dark_mode=False):
 DEFAULT_CHARACTERS = {
     "TON (Base)": "a striking male figure (185cm), razor-sharp jawline, textured modern quiff hair, athletic build",
     "FREYA (Base)": "a statuesque female survivor, intense hazel eyes, wet skin texture, strong features",
-    "TON (Action)": "Ton screaming in panic, sweat flying, muscles tense, sprinting desperately",
-    "FREYA (Action)": "Freya with a terrified expression, breathing heavily, looking back over shoulder"
 }
 DEFAULT_PROPS = {
     "Guitarra": "a vintage electric guitar",
     "Kayak": "a carbon fiber sea kayak",
-    "Linterna Táctica": "a high-lumen tactical flashlight with visible beam"
+    "Linterna Táctica": "a high-lumen tactical flashlight"
 }
 
 # --- MEMORIA ---
@@ -58,34 +55,82 @@ def translate_to_english(text):
         except: return str(text)
     return str(text)
 
-# --- LISTAS ---
-DEMO_STYLES = ["Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab"]
-DEMO_ENVIRONMENTS = ["✏️ Custom...", "Dusty African Savannah at sunset", "Turbulent river rapids", "Cyberpunk city street at night", "Dense jungle"]
-DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket"]
-DEMO_LIGHTING = ["Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting", "Soft overcast diffusion", "Available street lighting"]
-DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)"]
-DEMO_CAMERAS = ["Low angle, wide lens (looking up)", "Handheld dynamic shake", "Telephoto compression (85mm)", "Drone follow Shot"]
-DEMO_PROPS = ["None", "✏️ Custom...", "🔦 Tactical Flashlight", "🎒 Worn Backpack", "📱 Cracked Smartphone"]
-DEMO_AUDIO_MOOD = ["Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone"]
-DEMO_SFX_COMMON = ["Heavy breathing & footfalls", "Animal roar/trumpet", "Debris crumbling", "Wind howling"]
+# --- LISTAS COMPLETAS (RESTAURADAS) ---
+DEMO_STYLES = [
+    "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", 
+    "National Geographic Wildlife Style", "Gritty Documentary Footage", 
+    "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"
+]
 
+# ENTORNOS RESTAURADOS
+DEMO_ENVIRONMENTS = [
+    "✏️ Custom...", 
+    "🛶 Dusi River (Turbulent Rapids)", 
+    "🔴 Mars Surface (Red Dust)", 
+    "🌌 Deep Space (Nebula Background)", 
+    "🚀 ISS Space Station Interior", 
+    "🌊 Underwater Coral Reef", 
+    "❄️ Arctic Tundra (Snowstorm)", 
+    "🏙️ Cyberpunk City (Neon Rain)", 
+    "🌲 Mystic Forest (Fog)"
+]
+
+DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
+
+# ILUMINACIÓN RESTAURADA
+DEMO_LIGHTING = [
+    "✏️ Custom...",
+    "Harsh golden hour sunlight (long shadows)", 
+    "Dramatic low-key lighting (Chiaroscuro)", 
+    "Soft overcast diffusion", 
+    "Neon City Glow (Blue/Pink)", 
+    "Stark Space Sunlight (No Fill)", 
+    "Underwater Caustics",
+    "Bioluminescence"
+]
+
+DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
+
+# CÁMARAS RESTAURADAS
+DEMO_CAMERAS = [
+    "✏️ Custom...",
+    "Low angle, wide lens (looking up)", 
+    "Handheld dynamic shake (Chaos)", 
+    "Telephoto compression (85mm, Bokeh)", 
+    "Drone follow Shot (High Angle)", 
+    "GoPro POV (Fisheye)", 
+    "Underwater Housing (Split-level)"
+]
+
+DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
+
+# AUDIO CUSTOM RESTAURADO
+DEMO_AUDIO_MOOD = ["✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
+DEMO_AUDIO_ENV = ["✏️ Custom...", "No Background", "Mars Wind", "River Rapids Roar", "Space Station Hum", "City Traffic Rain", "Jungle Sounds"]
+DEMO_SFX_COMMON = ["✏️ Custom...", "None", "Heavy breathing", "Footsteps on gravel", "Water splashing", "Explosion", "Laser blasts"]
+
+# FÍSICA COMPLETA (RESTAURADA)
 PHYSICS_LOGIC = {
-    "Neutral / Terrestre": [],
-    "💨 Polvo y Partículas": ["Dust particles floating", "Debris rising from ground", "Atmospheric haze"],
-    "🌊 Agua Turbulenta": ["Water splashing violently", "White foam", "Wet surfaces", "Droplets on lens"],
-    "🔥 Fuego y Humo": ["Volumetric smoke", "Embers rising", "Heat distortion waves"],
-    "🌬️ Viento Extremo": ["Fabric fluttering wildly", "Hair blowing", "Trees bending", "Dust streaks"]
+    "Neutral / Estudio": [],
+    "🌌 Espacio (Gravedad Cero)": ["Zero-G floating", "No air resistance", "Stark lighting", "Vacuum silence", "Floating debris"],
+    "🔴 Marte (Gravedad Baja)": ["Low gravity movement", "Red dust storms", "Heat distortion", "Dust settling slowly"],
+    "🌊 Agua (Superficie/Río)": ["Turbulent flow", "White water foam", "Wet fabric adhesion", "Reflections", "Water splashes on lens"],
+    "🤿 Submarino (Profundidad)": ["Weightless suspension", "Light Caustics", "Rising bubbles", "Murky visibility", "Floating hair"],
+    "❄️ Nieve / Hielo": ["Falling snow flakes", "Breath condensation (fog)", "Slippery movement", "Frost on lens"],
+    "🌬️ Aire / Vuelo": ["High wind drag", "Fabric fluttering wildly", "Motion blur", "Aerodynamic trails"]
 }
 
-# --- PLANTILLAS NARRATIVAS (SOLO SE USAN SI SE SELECCIONAN) ---
+# PLANTILLAS NARRATIVAS
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
     "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic, looking back over shoulder. Behind them, a colossal creature is charging, kicking up debris.",
     "🧟 Transformación Súbita": "At second 0, the scene is static. Suddenly, the inanimate object behind the subject rapidly transforms into a massive, living threat. The subject reacts with sheer terror.",
     "😱 Reacción de Pánico": "Close-up on the subject's face as they realize the danger. Expression shifts from calm to screaming panic. They scramble backward, falling.",
+    "🚀 Despegue / Lanzamiento": "Smoke fills the frame. The subject looks up in awe as a massive structure begins to lift off. Debris flies everywhere. Intense vibration.",
+    "🌊 Acción en el Agua": "The subject battles against the raging current. Water crashes over them. They gasp for air, paddling desperately to stay afloat."
 }
 
-# --- BUILDER (MOTOR VFX ENHANCED) ---
+# --- BUILDER ---
 class GrokVideoPromptBuilder:
     def __init__(self):
         self.parts = {}
@@ -111,9 +156,10 @@ class GrokVideoPromptBuilder:
             if self.end_image_filename: prompt.append(f"End Frame: '{self.end_image_filename}'.")
             prompt.append("Maintain strict visual consistency with references.")
 
-        # 2. NARRATIVA
+        # 2. NARRATIVA & VFX ENHANCER
         narrative_block = []
         
+        # Sujeto
         subject = p.get('subject', '')
         wardrobe = p.get('wardrobe_custom') or p.get('wardrobe', '')
         if "Custom" in wardrobe: wardrobe = ""
@@ -128,6 +174,7 @@ class GrokVideoPromptBuilder:
         if subject_details:
             narrative_block.append(f"MAIN SUBJECT: {', '.join(subject_details)}.")
 
+        # Acción
         action_raw = p.get('action', '')
         enhance_mode = p.get('enhance_mode', False)
         
@@ -138,6 +185,7 @@ class GrokVideoPromptBuilder:
             else:
                 narrative_block.append(f"ACTION: {action_raw}.")
 
+        # Entorno
         env = p.get('env_custom') or p.get('env', '')
         if "Custom" in env: env = ""
         if env: narrative_block.append(f"ENVIRONMENT: {env}.")
@@ -146,8 +194,13 @@ class GrokVideoPromptBuilder:
 
         # 3. FÍSICA Y ATMÓSFERA
         atmosphere = []
-        if p.get('light'): atmosphere.append(f"LIGHTING: {p['light']}")
         
+        # Luz
+        lit_val = p.get('light_custom') or p.get('light', '')
+        if "Custom" in lit_val: lit_val = ""
+        if lit_val: atmosphere.append(f"LIGHTING: {lit_val}")
+        
+        # Física
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
             dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
             if dets: atmosphere.append(f"PHYSICS & ATMOSPHERE: {', '.join(dets)}")
@@ -156,16 +209,24 @@ class GrokVideoPromptBuilder:
 
         # 4. CINE
         cinema = []
-        if p.get('camera'): cinema.append(p['camera'])
+        cam_val = p.get('camera_custom') or p.get('camera', '')
+        if "Custom" in cam_val: cam_val = ""
+        if cam_val: cinema.append(cam_val)
+        
         if p.get('style'): cinema.append(f"STYLE: {p['style']}")
         if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
 
         # 5. AUDIO
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
-        if m_val: audio_parts.append(f"Music: {m_val}")
+        if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
+        
+        e_val = p.get('audio_env_custom') or p.get('audio_env')
+        if e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
+
         s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
-        if s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        if s_val and "Custom" not in s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        
         if audio_parts: prompt.append(f"AUDIO: {'. '.join(audio_parts)}.")
 
         if p.get('ar'): prompt.append(f"--ar {p['ar'].split(' ')[0]}")
@@ -177,15 +238,33 @@ with st.sidebar:
     st.title("🔥 Config VFX")
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
     apply_custom_styles(is_dark)
+    
     if st.button("🔄 Restaurar Fábrica"):
         st.session_state.characters = DEFAULT_CHARACTERS.copy()
         st.session_state.custom_props = DEFAULT_PROPS.copy()
         st.rerun()
     
     st.header("🧬 Activos")
-    char_sel = st.selectbox("Editar Actor", list(st.session_state.characters.keys()))
-    st.text_area("ADN Actor", value=st.session_state.characters[char_sel], disabled=True)
+    st.info("Para crear uno NUEVO: Escribe el nombre y dale a guardar. Para EDITAR: Escribe el nombre de uno existente.")
     
+    tc, to = st.tabs(["👤 Cast", "🎸 Props"])
+    with tc:
+        c_n = st.text_input("Nombre Actor")
+        c_d = st.text_area("Descripción")
+        if st.button("Guardar Actor"):
+            if c_n and c_d:
+                st.session_state.characters[c_n] = translate_to_english(c_d)
+                st.success(f"Actor '{c_n}' guardado.")
+                st.rerun()
+    with to:
+        o_n = st.text_input("Nombre Objeto")
+        o_d = st.text_area("Descripción Visual")
+        if st.button("Guardar Objeto"):
+            if o_n and o_d:
+                st.session_state.custom_props[o_n] = translate_to_english(o_d)
+                st.success(f"Objeto '{o_n}' guardado.")
+                st.rerun()
+
     st.markdown("---")
     st.header("🖼️ Referencias")
     u_file = st.file_uploader("Start Frame", type=["jpg", "png"])
@@ -202,15 +281,16 @@ with st.sidebar:
 
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio (VFX Edition)")
-enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Detalle visceral, Blur, Sudor...)", value=True)
+enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Añadir detalle visceral, blur, sudor...)", value=True)
 
-# PESTAÑAS (RESTAURADA LA DE FÍSICA)
+# PESTAÑAS (COMPLETAS)
 t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio"])
 
 # VARS
 final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
-mus_vid, sfx_vid = "", ""
-phy_med, phy_det = "Neutral", []
+final_lit, final_cam = "", ""
+mus_vid, env_vid, sfx_vid = "", "", ""
+phy_med, phy_det = "Neutral / Estudio", []
 
 with t1:
     c_a, c_b = st.columns(2)
@@ -225,8 +305,6 @@ with t1:
         tpl_txt = NARRATIVE_TEMPLATES[tpl]
 
     st.markdown("##### 📜 Descripción de la Acción")
-    # CORRECCIÓN: El campo ahora empieza vacío (o con la plantilla elegida)
-    # Placeholder gris para dar ejemplo sin ensuciar
     act_val = st.text_area("Describe la escena (Inglés o Español):", 
                           value=tpl_txt, 
                           height=100, 
@@ -252,7 +330,6 @@ with t2:
         else: final_ward = w_sel
 
 with t3:
-    # PESTAÑA DE FÍSICA INDEPENDIENTE RESTAURADA
     st.markdown("##### ⚛️ Simulación Física")
     c1, c2 = st.columns(2)
     with c1:
@@ -262,18 +339,27 @@ with t3:
 
 with t4:
     c1, c2, c3 = st.columns(3)
-    with c1: cam = st.selectbox("Cámara", DEMO_CAMERAS)
-    with c2: lit = st.selectbox("Luz", DEMO_LIGHTING)
+    with c1: 
+        cam_sel = st.selectbox("Cámara", DEMO_CAMERAS)
+        if "Custom" in cam_sel: final_cam = translate_to_english(st.text_input("Cámara Custom", key="cc"))
+        else: final_cam = cam_sel
+    with c2: 
+        lit_sel = st.selectbox("Iluminación", DEMO_LIGHTING)
+        if "Custom" in lit_sel: final_lit = translate_to_english(st.text_input("Luz Custom", key="ll"))
+        else: final_lit = lit_sel
     with c3: 
         sty = st.selectbox("Estilo", DEMO_STYLES)
         ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
 
 with t5:
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1: 
         m_sel = st.selectbox("Música", DEMO_AUDIO_MOOD)
         mus_vid = translate_to_english(st.text_input("Mus. Custom", key="mc")) if "Custom" in m_sel else m_sel
     with c2:
+        e_aud = st.selectbox("Ambiente", DEMO_AUDIO_ENV)
+        env_vid = translate_to_english(st.text_input("Amb. Custom", key="ec")) if "Custom" in e_aud else e_aud
+    with c3:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
@@ -291,11 +377,12 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('env', final_env)
     b.set_field('physics_medium', phy_med)
     b.set_field('physics_details', phy_det)
-    b.set_field('camera', cam)
-    b.set_field('light', lit)
+    b.set_field('camera', final_cam)
+    b.set_field('light', final_lit)
     b.set_field('style', sty)
     b.set_field('ar', ar)
     b.set_field('audio_mood', mus_vid)
+    b.set_field('audio_env', env_vid)
     b.set_field('audio_sfx', sfx_vid)
     
     res = b.build()
@@ -307,3 +394,22 @@ if st.session_state.generated_output:
     st.subheader("📝 Prompt Final")
     final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
     st.code(st.session_state.generated_output, language="text")
+
+# SUNO
+st.markdown("---")
+with st.expander("🎹 SUNO AI Audio Station", expanded=False):
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        s_gen = st.selectbox("Género", ["Cinematic", "Cyberpunk", "Rock", "Lo-Fi", "Custom..."])
+        if s_gen == "Custom...": s_gen = st.text_input("Género Custom")
+    with c2:
+        s_str = st.selectbox("Estructura", ["Intro", "Loop", "Outro", "Build-up"])
+        s_bpm = st.slider("BPM", 60, 180, 120)
+    with c3:
+        s_moo = st.text_input("Mood", placeholder="Epic, Sad, Tense...")
+        s_ins = st.text_input("Instrumentos", placeholder="Violin, Synth...")
+
+    if st.button("🎵 GENERAR SUNO"):
+        mo = translate_to_english(s_moo)
+        ins = translate_to_english(s_ins)
+        st.code(f"[{s_str}] [{s_gen}] [{s_bpm} BPM]\n{mo} atmosphere. Featuring {ins}.", language="text")
