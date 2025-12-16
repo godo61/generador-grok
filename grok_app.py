@@ -46,11 +46,11 @@ DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
-# Cine Lists
-LIST_SHOT_TYPES = ["Neutral (Auto)", "✏️ Custom...", "Extreme Long Shot (Gran Plano General)", "Long Shot (Plano General)", "Medium Shot (Plano Medio)", "Cowboy Shot (Plano Americano)", "Close-Up (Primer Plano)", "Extreme Close-Up (Macro Detalle)", "Over-The-Shoulder (Sobre el Hombro)"]
-LIST_ANGLES = ["Neutral (Auto)", "✏️ Custom...", "Low Angle (Contrapicado)", "High Angle (Picado)", "Dutch Angle (Plano Holandés)", "Bird's Eye View (Vista de Pájaro)", "Drone Aerial View (FPV)", "POV (Point of View)"]
-LIST_LENSES = ["Neutral (Auto)", "✏️ Custom...", "16mm Wide Angle", "35mm Prime (Cinema)", "50mm Lens (Human Eye)", "85mm f/1.4 (Portrait)", "100mm Macro", "Canon L-Series Style", "Vintage Anamorphic", "Fisheye Lens"]
-DEMO_LIGHTING = ["Neutral (Auto)", "✏️ Custom...", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast", "Neon City Glow", "Stark Space Sunlight", "Underwater Caustics", "Bioluminescence"]
+# Cine Lists (GrokImagine Formula)
+LIST_SHOT_TYPES = ["Neutral (Auto)", "✏️ Custom...", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Cowboy Shot (Knees Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Detail)", "Over-The-Shoulder (Dialogue)"]
+LIST_ANGLES = ["Neutral (Auto)", "✏️ Custom...", "Low Angle (Heroic/Ominous)", "High Angle (Vulnerable)", "Dutch Angle (Chaos/Tension)", "Bird's Eye View (Top-Down)", "Drone Aerial View (Establishing)", "POV (First Person)"]
+LIST_LENSES = ["Neutral (Auto)", "✏️ Custom...", "16mm Wide Angle (Expansive)", "35mm Prime (Street/Docu)", "50mm Lens (Natural Eye)", "85mm f/1.4 (Portrait Bokeh)", "100mm Macro (Micro Detail)", "Canon L-Series (Sharp)", "Vintage Anamorphic (Cinematic)", "Fisheye (Distorted)"]
+DEMO_LIGHTING = ["Neutral (Auto)", "✏️ Custom...", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow (Cyberpunk)", "Stark Space Sunlight (Hard Shadows)", "Underwater Caustics", "Bioluminescence"]
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
 # Audio
@@ -80,18 +80,16 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering", "Motion blur"]
 }
 
-# --- 4. GESTIÓN DE ESTADO (PERSISTENCIA) ---
-# Inicializar variables críticas
-if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
-if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
-if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
-if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
-if 'history' not in st.session_state: st.session_state.history = []
-if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
-
-# Inicialización de widgets con valores por defecto
-# Usamos un diccionario para asegurar que todas las keys existan
-default_widget_values = {
+# --- 4. GESTIÓN DE ESTADO ---
+# Inicializar variables
+keys_to_init = {
+    'generated_output': "",
+    'generated_explanation': "",
+    'characters': DEFAULT_CHARACTERS.copy(),
+    'custom_props': DEFAULT_PROPS.copy(),
+    'history': [],
+    'uploader_key': 0,
+    # Widgets
     'act_input': "",
     'char_select': "-- Seleccionar Protagonista --",
     'shot_select': LIST_SHOT_TYPES[0],
@@ -100,15 +98,14 @@ default_widget_values = {
     'lit_select': DEMO_LIGHTING[0],
     'sty_select': DEMO_STYLES[0],
     'env_select': DEMO_ENVIRONMENTS[0],
-    'ar_select': DEMO_ASPECT_RATIOS[1], # 16:9
+    'ar_select': DEMO_ASPECT_RATIOS[1],
     'phy_select': "Neutral / Estudio"
 }
 
-for key, val in default_widget_values.items():
-    if key not in st.session_state:
-        st.session_state[key] = val
+for k, v in keys_to_init.items():
+    if k not in st.session_state: st.session_state[k] = v
 
-# --- 5. FUNCIONES LÓGICAS ---
+# --- 5. FUNCIONES LÓGICAS (MEJORADAS) ---
 def translate_to_english(text):
     if not text or not text.strip(): return ""
     if TRANSLATOR_AVAILABLE:
@@ -117,59 +114,57 @@ def translate_to_english(text):
     return str(text)
 
 def detect_and_set_ar(image_file):
-    """Detecta el Ratio de la imagen y actualiza el estado"""
     try:
         img = Image.open(image_file)
         w, h = img.size
         ratio = w / h
-        
-        idx = 1 # Default 16:9
-        if ratio > 2.0: idx = 0 # 21:9
-        elif ratio > 1.5: idx = 1 # 16:9
-        elif ratio < 0.8: idx = 2 # 9:16
-        elif ratio < 1.2 and ratio > 0.8: idx = 4 # 1:1
-        else: idx = 3 # 4:3
-        
-        # Actualizamos la variable de estado que controla el widget
+        idx = 1
+        if ratio > 2.0: idx = 0
+        elif ratio > 1.5: idx = 1
+        elif ratio < 0.8: idx = 2
+        elif ratio < 1.2 and ratio > 0.8: idx = 4
+        else: idx = 3
         st.session_state['ar_select'] = DEMO_ASPECT_RATIOS[idx]
         return DEMO_ASPECT_RATIOS[idx]
-    except Exception as e:
-        return None
+    except: return None
 
 def apply_smart_look(action_text, env_text):
-    """Analiza el texto y selecciona opciones de las listas"""
     txt = (action_text + " " + env_text).lower()
     
-    # Elección aleatoria segura (saltando los primeros índices 'Neutral'/'Custom')
+    # Defaults aleatorios (pero coherentes)
     s_shot = random.choice(LIST_SHOT_TYPES[2:])
     s_angle = random.choice(LIST_ANGLES[2:])
     s_lens = random.choice(LIST_LENSES[2:])
     s_lit = random.choice(DEMO_LIGHTING[2:])
     s_sty = random.choice(DEMO_STYLES[1:])
     
-    # Lógica de reglas
-    if "terror" in txt or "miedo" in txt or "panic" in txt:
-        s_angle = "Dutch Angle (Plano Holandés)"
+    # --- REGLAS DE "ARCHITECT" (INTELIGENCIA CONTEXTUAL) ---
+    # REGLA 1: Si hay acción rápida o persecución, NO usar Macro ni Close-Up estático
+    if "correr" in txt or "run" in txt or "sprint" in txt or "chase" in txt or "persecución" in txt:
+        s_shot = "Long Shot (Full Body)" # Necesitamos ver las piernas corriendo
+        s_angle = "Low Angle (Heroic/Ominous)" # Acción dinámica
+        s_lens = "16mm Wide Angle (Expansive)" # Captura el movimiento
+        s_sty = "Action Movie Screengrab"
+    
+    # REGLA 2: Terror y Miedo
+    elif "terror" in txt or "miedo" in txt or "panic" in txt or "creature" in txt:
+        s_angle = "Dutch Angle (Chaos/Tension)"
         s_lit = "Dramatic Low-Key (Chiaroscuro)"
         s_sty = "Gritty Documentary Footage"
-        s_shot = "Close-Up (Primer Plano)"
-    
-    elif "correr" in txt or "run" in txt or "persecución" in txt:
-        s_shot = "Long Shot (Plano General)"
-        s_angle = "Low Angle (Contrapicado)"
-        s_lens = "16mm Wide Angle"
-        s_sty = "Action Movie Screengrab"
         
-    elif "espacio" in txt or "space" in txt or "marte" in txt:
-        s_lit = "Stark Space Sunlight"
-        s_lens = "Fisheye Lens"
+    # REGLA 3: Emoción / Canto
+    elif "sing" in txt or "cantar" in txt or "cry" in txt:
+        s_shot = "Close-Up (Face Focus)"
+        s_lens = "85mm f/1.4 (Portrait Bokeh)"
+        s_lit = "Soft Overcast (Diffusion)"
+        
+    # REGLA 4: Ciencia Ficción / Espacio
+    elif "space" in txt or "marte" in txt or "alien" in txt:
+        s_lit = "Stark Space Sunlight (Hard Shadows)"
+        s_lens = "Fisheye (Distorted)"
         s_sty = "Hyper-realistic VFX Render (Unreal 5)"
-        
-    elif "agua" in txt or "water" in txt or "rio" in txt:
-        s_lit = "Underwater Caustics"
-        s_angle = "Drone Aerial View (FPV)"
 
-    # Aplicar SOLO si los valores existen en las listas (seguridad)
+    # Aplicar al estado
     if s_shot in LIST_SHOT_TYPES: st.session_state['shot_select'] = s_shot
     if s_angle in LIST_ANGLES: st.session_state['angle_select'] = s_angle
     if s_lens in LIST_LENSES: st.session_state['lens_select'] = s_lens
@@ -177,26 +172,27 @@ def apply_smart_look(action_text, env_text):
     if s_sty in DEMO_STYLES: st.session_state['sty_select'] = s_sty
 
 def perform_reset():
-    """Resetea todos los campos a sus valores por defecto"""
     st.session_state['act_input'] = ""
     st.session_state['char_select'] = "-- Seleccionar Protagonista --"
+    # Reset a defaults (indice 0)
     st.session_state['shot_select'] = LIST_SHOT_TYPES[0]
     st.session_state['angle_select'] = LIST_ANGLES[0]
     st.session_state['lens_select'] = LIST_LENSES[0]
     st.session_state['lit_select'] = DEMO_LIGHTING[0]
     st.session_state['sty_select'] = DEMO_STYLES[0]
     st.session_state['env_select'] = DEMO_ENVIRONMENTS[0]
-    st.session_state['uploader_key'] += 1 # Truco para limpiar file_uploader
+    st.session_state['phy_select'] = "Neutral / Estudio"
+    st.session_state['uploader_key'] += 1 
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
-# --- 6. CLASE BUILDER ---
+# --- 6. BUILDER EVOLUCIONADO (GROK ARCHITECT STYLE) ---
 class GrokVideoPromptBuilder:
     def __init__(self):
         self.parts = []
         self.explanation = []
         
-    def add(self, text, explain=None):
+    def add_section(self, text, explain=None):
         if text:
             self.parts.append(text)
             if explain: self.explanation.append(explain)
@@ -209,16 +205,13 @@ with st.sidebar:
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
     apply_custom_styles(is_dark)
     
-    # BOTÓN SUGERIR
     if st.button("🎲 Sugerir Look (Inteligente)"):
-        # Leemos el estado actual
         act = st.session_state.get('act_input', "")
         env = st.session_state.get('env_select', "")
         apply_smart_look(act, env)
-        st.toast("✨ Look aplicado según el contexto!")
+        st.toast("✨ Look Cinematográfico Aplicado")
         st.rerun()
 
-    # BOTÓN RESET
     if st.button("🗑️ Nueva Escena (Limpiar Todo)", type="secondary"):
         perform_reset()
         st.rerun()
@@ -226,20 +219,17 @@ with st.sidebar:
     st.markdown("---")
     st.header("🖼️ Referencias")
     
-    # Uploader con key dinámica
     u_key = f"up_{st.session_state.uploader_key}"
     uploaded_file = st.file_uploader("Start Frame", type=["jpg", "png"], key=u_key)
     
-    # Detección automática de AR al subir
     if uploaded_file:
         st.image(uploaded_file, caption="Ref")
-        # Si es un archivo nuevo que no hemos analizado
         if 'last_img_name' not in st.session_state or st.session_state.last_img_name != uploaded_file.name:
             detected_ar = detect_and_set_ar(uploaded_file)
             st.session_state.last_img_name = uploaded_file.name
             if detected_ar:
                 st.toast(f"📏 Formato detectado: {detected_ar}")
-                st.rerun() # Recargar para actualizar el selector de AR
+                st.rerun()
     
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
@@ -249,24 +239,21 @@ enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Modo Auto-Excellence)", value
 
 t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio & Voz"])
 
-# Variables para el builder
+# Variables
 final_sub, final_act = "", ""
 
 with t1:
     c1, c2 = st.columns(2)
     with c1:
-        # CONSTRUIR OPCIONES DE PROTAGONISTA
         char_opts = ["-- Seleccionar Protagonista --"]
         if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto (Usar Referencia)")
         char_opts += list(st.session_state.characters.keys())
         
-        # Verificar que la selección actual siga siendo válida
         if st.session_state.char_select not in char_opts:
             st.session_state.char_select = char_opts[0]
             
         char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
         
-        # Lógica de texto
         if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
         elif "--" in char_sel: final_sub = ""
         else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
@@ -275,7 +262,6 @@ with t1:
         tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()))
         if tpl != "Seleccionar...":
             st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
-            # No forzamos rerun, el usuario verá el cambio instantáneo en el text_area
 
     st.markdown("##### 📜 Descripción de la Acción")
     act_val = st.text_area("Describe la escena:", height=100, key="act_input")
@@ -287,14 +273,13 @@ with t2:
         e_sel = st.selectbox("Entorno", DEMO_ENVIRONMENTS, key="env_select")
         final_env = st.text_input("Custom Env", key="env_cust") if "Custom" in e_sel else e_sel
         
-        # Construir lista de props dinámica
         all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS_LIST[2:]
         prop_sel = st.selectbox("Objeto", all_props, key="prop_select")
         
         if prop_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[prop_sel]
         elif "Custom" in prop_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
         elif "None" not in prop_sel: final_prop = prop_sel
-        else: final_prop = ""
+        else: final_prop = "" # Limpieza explícita
 
     with c2:
         ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
@@ -308,11 +293,10 @@ with t3:
     with c2: phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
 with t4:
-    # CINE PRO (Widgets conectados a st.session_state)
     c1, c2, c3 = st.columns(3)
     with c1:
         st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select")
-        st.selectbox("4. Formato (Auto)", DEMO_ASPECT_RATIOS, key="ar_select")
+        st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
     with c2:
         st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select")
         st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select")
@@ -325,66 +309,30 @@ with t5:
     st.info("Sube aquí el audio SOLO para activar el Lip-Sync en el prompt.")
     aud_file = st.file_uploader("Audio (MP3/WAV)", type=["mp3","wav"], key=f"aud_{st.session_state.uploader_key}")
     
-    # --- SUNO AI SECTION (INTEGRADA) ---
     st.markdown("---")
     with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
         c1, c2 = st.columns(2)
         with c1:
-            # Variable segura para evitar el error anterior
             suno_is_instrumental = st.toggle("🎻 Instrumental", key="suno_inst_check")
             suno_dur = st.slider("Duración", 30, 240, 120)
-            
             if suno_dur <= 45: struc = "[Intro] [Hook] [Outro]"
             elif suno_dur <= 90: struc = "[Intro] [Verse] [Chorus] [Outro]"
             else: struc = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
-                
         with c2:
             s_gen = st.text_input("Género", placeholder="Rock...")
             s_mood = st.text_input("Mood", placeholder="Epic...")
         
         s_lyr = ""
         if not suno_is_instrumental:
-            s_lyr = st.text_area("Letra/Tema:", placeholder="Escribe la letra o describe el tema...", key="suno_lyrics_input")
+            s_lyr = st.text_area("Letra/Tema:", key="suno_lyr_input")
 
         if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
             tags = []
             if suno_is_instrumental: tags.append("[Instrumental]")
             if s_gen: tags.append(f"[{translate_to_english(s_gen)}]")
             if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
+            st.code(f"Style: {' '.join(tags)}\nStructure:\n{struc}\nLyrics:\n{translate_to_english(s_lyr)}", language="text")
             
-            res_suno = f"Style Prompts: {' '.join(tags)}\n\nStructure:\n{struc}\n"
-            if s_lyr: res_suno += f"\nLyrics / Topic:\n{translate_to_english(s_lyr)}"
-            
-            st.code(res_suno, language="text")
-            
-    # Configuración de voz normal
-    st.markdown("---")
-    dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz (TTS)", value=False)
-    
-    if dialogue_enabled:
-        with st.container(border=True):
-            dc1, dc2 = st.columns(2)
-            with dc1:
-                v_char_sel = st.selectbox("Personaje que habla", ["Protagonista Actual", "Narrador"] + list(st.session_state.characters.keys()))
-                if "Protagonista" in v_char_sel: voice_char = "The Main Character"
-                elif "Narrador" in v_char_sel: voice_char = "Narrator"
-                else: voice_char = v_char_sel
-                
-                v_type = st.selectbox("Tipo Voz", VOICE_TYPES)
-                if "Custom" in v_type: voice_type = translate_to_english(st.text_input("Tipo Custom", key="vtc"))
-                else: voice_type = v_type
-            with dc2:
-                v_acc = st.selectbox("Acento", VOICE_ACCENTS)
-                if "Custom" in v_acc: voice_accent = translate_to_english(st.text_input("Acento Custom", key="vac"))
-                else: voice_accent = v_acc
-                
-                v_emo = st.selectbox("Emoción", VOICE_EMOTIONS)
-                if "Custom" in v_emo: voice_emotion = translate_to_english(st.text_input("Emo Custom", key="vec"))
-                else: voice_emotion = v_emo
-            
-            d_txt = st.text_area("Guion / Diálogo:", placeholder="Texto a hablar...")
-            dialogue_text = translate_to_english(d_txt)
-    
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1: 
@@ -394,74 +342,81 @@ with t5:
         s_sel = st.selectbox("SFX", DEMO_SFX)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
-# --- 9. GENERACIÓN DEL PROMPT FINAL ---
+# --- 9. GENERACIÓN DEL PROMPT FINAL (ESTILO ARCHITECT) ---
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b = GrokVideoPromptBuilder()
     
-    # 1. Cabecera
-    if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
-    if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
-    if aud_file: b.add(f"AUDIO SOURCE: '{aud_file.name}'. ACTION: STRICT LIP-SYNC.", "🗣️ Lip Sync")
-    b.add("Maintain strict visual consistency.")
+    # A. CABECERA TÉCNICA (Sintaxis Estricta)
+    if uploaded_file: b.add_section(f"Start Frame: '{uploaded_file.name}'")
+    if uploaded_end: b.add_section(f"End Frame: '{uploaded_end.name}'")
+    if aud_file: b.add_section(f"AUDIO SOURCE: '{aud_file.name}'. ACTION: STRICT LIP-SYNC.")
+    b.add_section("Maintain strict visual consistency with source.")
     
-    # 2. Narrativa
-    narrative = []
-    if final_sub: narrative.append(final_sub)
-    if "Custom" not in final_ward: narrative.append(f"WEARING: {final_ward}")
-    if "Custom" not in final_prop and "None" not in final_prop: narrative.append(f"HOLDING: {final_prop}")
+    # B. NARRATIVA (Estilo Architect)
+    # Solo agregamos lo que no está vacío
+    char_desc = []
+    if final_sub: char_desc.append(final_sub)
+    if "Custom" not in ward_sel and ward_sel: char_desc.append(f"wearing {ward_sel}")
+    if final_prop: char_desc.append(f"holding {final_prop}")
+    
+    if char_desc: b.add_section(f"SUBJECT: {', '.join(char_desc)}.")
     
     if final_act:
         if enhance_mode:
             ints = "extreme motion blur, sweat, panic, dynamic chaos"
-            if aud_file: ints += ", singing expression"
-            narrative.append(f"VISCERAL ACTION: {final_act}. FEATURING: {ints}.")
-            b.explanation.append("🔥 VFX Mode: Acción intensificada.")
+            if aud_file: ints += ", precise facial singing expression"
+            b.add_section(f"VISCERAL ACTION SEQUENCE: {final_act}. FEATURING: {ints}.")
         else:
-            narrative.append(f"ACTION: {final_act}.")
+            b.add_section(f"ACTION: {final_act}.")
     
-    if "Custom" not in final_env: narrative.append(f"ENVIRONMENT: {final_env}.")
-    elif enhance_mode and not final_env: narrative.append("ENVIRONMENT: Cinematic background.")
+    # Entorno Limpio
+    if "Custom" not in final_env: 
+        b.add_section(f"ENVIRONMENT: {final_env}.")
+    elif enhance_mode and not final_env:
+        b.add_section("ENVIRONMENT: Cinematic atmospheric background.")
+
+    # C. CINEMATOGRAFÍA & ATMÓSFERA (Lenguaje Natural)
+    # Combinamos luz y cámara en una frase cohesiva
     
-    b.add("\n".join(narrative))
-    
-    # 3. Atmósfera
-    atm = []
+    # 1. Luz
     lit = st.session_state.lit_select
-    if "Neutral" not in lit and "Custom" not in lit: atm.append(f"LIGHTING: {lit}")
-    elif enhance_mode: atm.append("LIGHTING: Dramatic tone-matching.")
+    if "Neutral" in lit: lit = "Cinematic lighting"
+    elif "Custom" in lit: lit = ""
+    else: lit = lit.split('(')[0] # Quitamos paréntesis explicativos
     
-    if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
-    b.add(". ".join(atm))
+    # 2. Cámara
+    shot = st.session_state.shot_select
+    shot = "" if "Neutral" in shot else shot.split('(')[0]
     
-    # 4. Cine
-    cine = []
-    for k in ['shot_select', 'angle_select', 'lens_select']:
-        val = st.session_state[k]
-        if "Neutral" not in val and "Custom" not in val: cine.append(val.split('(')[0])
+    angle = st.session_state.angle_select
+    angle = "" if "Neutral" in angle else angle.split('(')[0]
     
+    lens = st.session_state.lens_select
+    lens = "" if "Neutral" in lens else lens.split('(')[0]
+    
+    # Construcción de la frase estilo Gem
+    cine_sentence = f"LIGHTING & CAMERA: {lit}."
+    if shot or angle or lens:
+        cine_sentence += f" Shot{f' on {lens}' if lens else ''}{f' using a {shot}' if shot else ''}{f' from a {angle} perspective' if angle else ''}."
+    
+    b.add_section(cine_sentence)
+    
+    # Estilo
     sty = st.session_state.sty_select
-    if "Neutral" not in sty: cine.append(f"STYLE: {sty}")
+    if "Neutral" not in sty: b.add_section(f"STYLE: {sty.split('(')[0]}")
     
-    if cine: b.add(f"CINEMATOGRAPHY: {', '.join(cine)}.")
-    elif enhance_mode: b.add("CINEMATOGRAPHY: High production value.")
+    # Audio
+    if mus_vid and "Neutral" not in mus_vid: b.add_section(f"SOUND DESIGN: {mus_vid}")
     
-    # 5. Params
+    # Params
     ar_val = st.session_state.ar_select.split('(')[0].strip()
-    b.add(f"--ar {ar_val}")
-    
-    # 6. Audio/Dialogo
-    if mus_vid and "Neutral" not in mus_vid: b.add(f"MUSIC: {mus_vid}")
-    if dialogue_enabled and dialogue_text:
-        b.add(f"DIALOGUE: {voice_char} ({voice_type}, {voice_emotion}) says: \"{dialogue_text}\"")
+    b.add_section(f"--ar {ar_val}")
     
     res = b.get_prompt()
     st.session_state.generated_output = res
-    st.session_state.generated_explanation = "\n".join(b.explanation)
 
 if st.session_state.generated_output:
     st.markdown("---")
-    if st.session_state.generated_explanation:
-        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
-    st.subheader("📝 Prompt Final")
+    st.subheader("📝 Prompt Final (Grok Architect Style)")
     st.code(st.session_state.generated_output, language="text")
-    st.caption("👆 Pulsa el icono de 'Copiar' en la esquina superior derecha del bloque negro.")
+    st.caption("👆 Pulsa el icono de 'Copiar' para llevarlo a Grok.")
