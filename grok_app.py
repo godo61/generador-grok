@@ -33,10 +33,20 @@ def apply_custom_styles(dark_mode=False):
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# Listas
+# Listas Visuales (VESTUARIO ACTUALIZADO PARA SER EXPLÍCITO)
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear", "tactical gear", "worn denim jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
+
+# AQUÍ EL CAMBIO CLAVE: ROPA EXPLÍCITA
+DEMO_WARDROBE = [
+    "✏️ Custom...", 
+    "Short-sleeve grey t-shirt (Cotton texture)", 
+    "Short-sleeve tactical shirt (Ripstop)",
+    "Long-sleeve denim shirt (Rolled up)", 
+    "NASA EVA Spacesuit (Bulky)", 
+    "Tactical Wetsuit (Neoprene)", 
+    "Elegant Suit (Three piece)"
+]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
 LIST_SHOT_TYPES = ["Neutral (Auto)", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)"]
@@ -108,10 +118,7 @@ def detect_ar(image_file):
     except: return 0
 
 def apply_smart_look_logic(text):
-    """Calcula el look basado en el texto"""
     txt = text.lower()
-    
-    # Defaults
     res = {
         'shot': "Medium Shot (Waist Up)",
         'angle': "Neutral (Auto)",
@@ -120,38 +127,32 @@ def apply_smart_look_logic(text):
         'sty': "Cinematic Film Still"
     }
     
-    # Lógica Contextual - CORREGIDA
     if any(x in txt for x in ["transform", "morph", "cambia", "plástico"]):
         res['lens'] = "50mm Lens (Natural)"
         res['sty'] = "Hyper-realistic VFX Render (Unreal 5)"
         res['lit'] = "Dramatic Low-Key (Chiaroscuro)"
         res['shot'] = "Close-Up (Face Focus)"
-        
     elif any(x in txt for x in ["mamut", "monster", "gigante"]):
         res['shot'] = "Extreme Long Shot (Epic Scale)"
         res['angle'] = "Low Angle (Heroic/Ominous)"
         res['lens'] = "16mm Wide Angle (Expansive)"
         res['lit'] = "Harsh Golden Hour"
-        
     elif any(x in txt for x in ["run", "correr", "persecución"]):
         res['shot'] = "Long Shot (Full Body)"
-        res['angle'] = "Drone Aerial View (Establishing)"
+        res['angle'] = "Drone Aerial View"
         res['lens'] = "Fisheye (Distorted)"
         res['sty'] = "Action Movie Screengrab"
         
     return res
 
 def perform_smart_update():
-    """Actualiza los widgets visualmente"""
     action = st.session_state.get('act_input', "")
     suggestions = apply_smart_look_logic(action)
-    
     for k, target in [('shot_select', suggestions['shot']), 
                       ('angle_select', suggestions['angle']),
                       ('lens_select', suggestions['lens']),
                       ('lit_select', suggestions['lit']),
                       ('sty_select', suggestions['sty'])]:
-        
         if k == 'shot_select': lst = LIST_SHOT_TYPES
         elif k == 'angle_select': lst = LIST_ANGLES
         elif k == 'lens_select': lst = LIST_LENSES
@@ -177,7 +178,7 @@ def perform_reset():
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
-# --- 6. BUILDER ---
+# --- 6. BUILDER CON ANCLAJE DE ROPA ---
 class PromptBuilder:
     def __init__(self):
         self.parts = []
@@ -202,21 +203,17 @@ with st.sidebar:
     st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
-    # AYUDA AL USUARIO
-    with st.expander("❓ Guía Rápida: Cómo usar el Equipo"):
-        st.info("🧠 **Modo Architect (El Guionista)**\nTrabaja en el texto. Si está **ON**, lee tu acción y añade detalles creativos (sudor, texturas, morphing) al prompt final automáticamente.")
-        st.info("👀 **Sugerir Look (El Director)**\nTrabaja en la imagen. Si pulsas el botón, **mueve los selectores** visualmente para proponerte cámaras y luces. Puedes cambiarlos después.")
-        st.warning("⚡ **Jerarquía de Mando**\n1. Tu elección manual en los selectores MANDA.\n2. Si dejas 'Neutral', el Architect elige por ti.")
+    with st.expander("❓ Guía Rápida"):
+        st.info("🧠 **Modo Architect:** Expande creativamente tu texto.")
+        st.info("👀 **Sugerir Look:** Mueve los selectores automáticamente.")
+        st.info("👕 **Ropa Segura:** Elige siempre ropa explícita (Manga corta, larga) para evitar cambios.")
 
-    st.markdown("---")
-    
-    # BOTÓN SUGERIR (PRIMERA POSICIÓN)
-    if st.button("🎲 Sugerir Look (Aplicar a Selectores)"):
+    if st.button("🎲 Sugerir Look (Aplicar)"):
         perform_smart_update()
-        st.toast("✨ Selectores actualizados. Revisa la pestaña Cinematografía.")
+        st.toast("✨ Selectores actualizados.")
         st.rerun()
 
-    if st.button("🗑️ Nueva Escena (Limpiar)"):
+    if st.button("🗑️ Nueva Escena"):
         perform_reset()
         st.rerun()
 
@@ -228,7 +225,6 @@ with st.sidebar:
     if uploaded_file:
         st.image(uploaded_file, caption="Ref")
         if 'last_img_name' not in st.session_state or st.session_state.last_img_name != uploaded_file.name:
-            # Auto-detect AR visualmente
             ridx = detect_ar(uploaded_file)
             st.session_state.ar_select = DEMO_ASPECT_RATIOS[ridx]
             st.session_state.last_img_name = uploaded_file.name
@@ -237,9 +233,8 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V67)")
+st.title("🎬 Grok Production Studio (V68)")
 
-# FORMULARIO
 with st.form("main_form"):
     
     t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio"])
@@ -259,10 +254,7 @@ with st.form("main_form"):
             else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
         with c2:
-            # CHECKBOX ARCHITECT
-            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción automáticamente)", value=True)
-            if enhance_mode:
-                st.caption("✅ *El sistema añadirá detalles viscerales al texto final.*")
+            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
 
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
@@ -290,6 +282,7 @@ with st.form("main_form"):
             else: final_prop = ""
 
         with c2:
+            st.info("💡 Consejo: Selecciona manga corta/larga explícitamente.")
             ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
             if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
             else: final_ward = ward_sel
@@ -300,7 +293,7 @@ with st.form("main_form"):
         with c2: phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
     with t4:
-        st.info("💡 Usa el botón 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
+        st.info("💡 Usa 'Sugerir Look' en la barra lateral para auto-configurar.")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select")
@@ -314,8 +307,7 @@ with st.form("main_form"):
 
     with t5:
         st.markdown("### 🎙️ Audio & Lip Sync")
-        # Nota: Uploader dentro de form es tricky, mejor visualización solo
-        st.info("Sube el audio en la barra lateral o aquí (procesado al final).")
+        st.info("Sube el audio en la barra lateral o aquí.")
         has_audio = st.checkbox("✅ Activar Lip-Sync")
         
         st.markdown("---")
@@ -323,7 +315,6 @@ with st.form("main_form"):
         with suno_cols[0]:
             suno_inst = st.toggle("🎻 Instrumental", key="s_inst")
 
-    # --- BOTÓN DE ENVÍO ---
     submitted = st.form_submit_button("✨ GENERAR PROMPT PRO")
 
 # --- 9. PROCESAMIENTO ---
@@ -333,13 +324,20 @@ if submitted:
     
     b = PromptBuilder()
     
+    # 1. Cabecera + ANCLAJE DE VESTUARIO
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
-    b.add("Maintain strict visual consistency.")
     
+    # FRASE DE SEGURIDAD (WARDROBE ANCHOR)
+    consistency_phrase = "Maintain strict visual consistency with source."
+    if final_ward: 
+        consistency_phrase += f" ENSURE SUBJECT KEEPS WEARING: {final_ward} throughout the sequence."
+    b.add(consistency_phrase, "🔒 Anclaje de Vestuario Activado")
+    
+    # 2. Narrativa
     narrative = []
     if final_sub: narrative.append(final_sub)
-    if "Custom" not in final_ward and final_ward: narrative.append(f"WEARING: {final_ward}")
+    if final_ward: narrative.append(f"WEARING: {final_ward}")
     if final_prop: narrative.append(f"HOLDING: {final_prop}")
     
     if eng_action:
@@ -350,7 +348,7 @@ if submitted:
         if enhance_mode:
             flavor = b.expand_flavor(eng_action)
             if not flavor: flavor = "cinematic depth, dynamic lighting, hyper-detailed textures"
-            b.add(f"{header}: {eng_action}. DETAILS: {flavor}.", "🔥 Architect Mode: Detalles inyectados")
+            b.add(f"{header}: {eng_action}. DETAILS: {flavor}.", "🔥 Architect Mode")
         else:
             b.add(f"ACTION: {eng_action}.")
     else:
@@ -365,14 +363,13 @@ if submitted:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    cine = []
+    # 3. Cine
     w_shot = st.session_state.shot_select
     w_angle = st.session_state.angle_select
     w_lens = st.session_state.lens_select
     w_lit = st.session_state.lit_select
     w_sty = st.session_state.sty_select
     
-    # LÓGICA DE DIRECTOR (Si no está en neutral, respeta lo manual. Si está en neutral, el Architect elige)
     auto_look = apply_smart_look_logic(eng_action) if enhance_mode else {}
     
     final_shot = w_shot if "Neutral" not in w_shot else auto_look.get('shot', "")
