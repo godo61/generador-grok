@@ -9,7 +9,7 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🗣️")
 
 # --- ESTILOS CSS ---
 def apply_custom_styles(dark_mode=False):
@@ -24,9 +24,8 @@ def apply_custom_styles(dark_mode=False):
         [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; }}
         [data-testid="sttoggle"] span {{ font-weight: bold; color: #FF4B4B; }}
+        /* Estilo para el cajón de diálogo */
         .stTextArea textarea {{ border-left: 5px solid #FF4B4B !important; }}
-        /* Aviso importante */
-        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -44,7 +43,6 @@ DEFAULT_PROPS = {
 # --- MEMORIA ---
 if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
-if 'uploaded_audio_name' not in st.session_state: st.session_state.uploaded_audio_name = None
 if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
@@ -91,7 +89,7 @@ DEMO_SFX_COMMON = ["✏️ Custom...", "None", "Heavy breathing", "Footsteps on 
 
 VOICE_TYPES = ["✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
 VOICE_ACCENTS = ["✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent", "Neutral"]
-VOICE_EMOTIONS = ["✏️ Custom...", "Neutral", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
+VOICE_EMOTIONS = ["✏️ Custom...", "Neutral", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty"]
 
 # --- FÍSICA ---
 PHYSICS_LOGIC = {
@@ -106,9 +104,9 @@ PHYSICS_LOGIC = {
 
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
-    "🎤 Performance Musical (Lip Sync)": "Close-up on the subject singing passionately. Mouth moves in perfect sync with the audio. Emotions range from intense focus to release. Sweat on brow, dynamic lighting reflecting the rhythm.",
     "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic, looking back over shoulder. Behind them, a colossal creature is charging, kicking up debris.",
     "🧟 Transformación Súbita": "At second 0, the scene is static. Suddenly, the inanimate object behind the subject rapidly transforms into a massive, living threat. The subject reacts with sheer terror.",
+    "😱 Reacción de Pánico": "Close-up on the subject's face as they realize the danger. Expression shifts from calm to screaming panic. They scramble backward, falling.",
 }
 
 # --- BUILDER ---
@@ -118,7 +116,6 @@ class GrokVideoPromptBuilder:
         self.is_img2video = False
         self.image_filename = ""
         self.end_image_filename = None
-        self.audio_filename = None
 
     def set_field(self, key, value):
         self.parts[key] = str(value).strip() if isinstance(value, str) else value
@@ -127,9 +124,6 @@ class GrokVideoPromptBuilder:
         self.is_img2video = True
         self.image_filename = filename
         self.end_image_filename = end_filename
-        
-    def activate_audio_sync(self, filename):
-        self.audio_filename = filename
 
     def build(self) -> str:
         p = self.parts
@@ -139,11 +133,6 @@ class GrokVideoPromptBuilder:
         if self.is_img2video:
             prompt.append(f"Start Frame: '{self.image_filename}'.")
             if self.end_image_filename: prompt.append(f"End Frame: '{self.end_image_filename}'.")
-            
-            if self.audio_filename:
-                prompt.append(f"NOTE FOR GENERATOR: User will upload audio file '{self.audio_filename}' separately.")
-                prompt.append("ACTION: STRICT LIP-SYNC. Character's mouth must move in synchronization with the provided vocal track.")
-            
             prompt.append("Maintain strict visual consistency with references.")
 
         # 2. NARRATIVA
@@ -167,11 +156,7 @@ class GrokVideoPromptBuilder:
         
         if action_raw:
             if enhance_mode:
-                extra_intensifiers = ""
-                if self.audio_filename:
-                    extra_intensifiers = ", precise facial animation, expressive singing, rhythmic head movement, mouth shapes matching vocals"
-                
-                intensifiers = "extreme motion blur on limbs, sweat flying, panic-stricken facial expression, dynamic chaos, hyper-detailed textures" + extra_intensifiers
+                intensifiers = "extreme motion blur on limbs, sweat flying, panic-stricken facial expression, dynamic chaos, hyper-detailed textures"
                 narrative_block.append(f"VISCERAL ACTION SEQUENCE: {action_raw}. FEATURING: {intensifiers}.")
             else:
                 narrative_block.append(f"ACTION: {action_raw}.")
@@ -194,17 +179,25 @@ class GrokVideoPromptBuilder:
             
         if atmosphere: prompt.append(". ".join(atmosphere) + ".")
 
-        # 4. DIÁLOGO (CONTEXTO)
+        # 4. DIÁLOGO Y VOZ
         if p.get('dialogue_enabled'):
             dialogue_text = p.get('dialogue_text', '')
-            if self.audio_filename:
-                 prompt.append(f"PERFORMANCE: Character is singing/speaking the uploaded audio track.")
-            
             if dialogue_text:
                 voice_char = p.get('voice_char', 'Character')
+                v_type = p.get('voice_type', '')
+                if "Custom" in v_type: v_type = ""
+                v_accent = p.get('voice_accent', '')
+                if "Custom" in v_accent: v_accent = ""
                 v_emotion = p.get('voice_emotion', '')
                 if "Custom" in v_emotion: v_emotion = ""
-                prompt.append(f"SCRIPT CONTEXT: {voice_char} says: \"{dialogue_text}\" with {v_emotion} tone.")
+                
+                voice_desc = []
+                if v_type: voice_desc.append(v_type)
+                if v_accent: voice_desc.append(f"{v_accent} accent")
+                if v_emotion: voice_desc.append(f"{v_emotion} tone")
+                
+                voice_str = f"({', '.join(voice_desc)})" if voice_desc else ""
+                prompt.append(f"DIALOGUE / LIP SYNC: {voice_char} speaks: \"{dialogue_text}\" {voice_str}.")
 
         # 5. CINE
         cinema = []
@@ -214,7 +207,17 @@ class GrokVideoPromptBuilder:
         if p.get('style'): cinema.append(f"STYLE: {p['style']}")
         if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
 
-        # 6. AUDIO Y PARÁMETROS
+        # 6. AUDIO
+        audio_parts = []
+        m_val = p.get('audio_mood_custom') or p.get('audio_mood')
+        if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
+        e_val = p.get('audio_env_custom') or p.get('audio_env')
+        if e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
+        s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
+        if s_val and "Custom" not in s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        
+        if audio_parts: prompt.append(f"SOUND DESIGN: {'. '.join(audio_parts)}.")
+
         if p.get('ar'): prompt.append(f"--ar {p['ar'].split(' ')[0]}")
 
         return "\n\n".join(prompt)
@@ -264,7 +267,7 @@ with st.sidebar:
 
 # --- PANEL PRINCIPAL ---
 st.title("🎬 Grok Production Studio (VFX Edition)")
-enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Detalle visceral, blur, sudor...)", value=True)
+enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Añadir detalle visceral, blur, sudor...)", value=True)
 
 t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio & Voz"])
 
@@ -285,11 +288,11 @@ with t1:
         final_sub = "" if "📷" in char_sel else st.session_state.characters[char_sel]
     
     with c_b:
-        tpl = st.selectbox("Plantilla de Guion", list(NARRATIVE_TEMPLATES.keys()))
+        tpl = st.selectbox("Plantilla de Guion (Opcional)", list(NARRATIVE_TEMPLATES.keys()))
         tpl_txt = NARRATIVE_TEMPLATES[tpl]
 
     st.markdown("##### 📜 Descripción de la Acción")
-    act_val = st.text_area("Describe la escena (Inglés o Español):", value=tpl_txt, height=100, placeholder="Ej: El personaje canta con pasión...")
+    act_val = st.text_area("Describe la escena (Inglés o Español):", value=tpl_txt, height=100, placeholder="Ej: El elefante ataca...")
     final_act = translate_to_english(act_val)
 
 with t2:
@@ -331,25 +334,8 @@ with t4:
         ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
 
 with t5:
-    st.markdown("### 🎙️ Estudio de Voz y Lip Sync")
-    
-    st.markdown("""
-    <div class="big-warning">
-    ⚠️ <b>IMPORTANTE:</b> El audio que subas aquí es para activar el modo "Lip-Sync" en el prompt. 
-    <b>Recuerda subir el archivo de audio real a tu IA de vídeo (Kling, Hedra, Runway)</b>.
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # UPLOADER DE AUDIO
-    audio_file = st.file_uploader("📂 Subir Audio Referencia (MP3/WAV)", type=["mp3", "wav", "m4a"])
-    if audio_file:
-        st.session_state.uploaded_audio_name = audio_file.name
-        st.audio(audio_file)
-        st.success(f"✅ Audio detectado. Se activará Lip Sync.")
-    else:
-        st.session_state.uploaded_audio_name = None
-
-    dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz", value=False)
+    st.markdown("### 🎙️ Estudio de Voz y Diálogo")
+    dialogue_enabled = st.toggle("🗣️ Habilitar Diálogo / Voiceover", value=False)
     
     if dialogue_enabled:
         with st.container(border=True):
@@ -374,14 +360,14 @@ with t5:
                 if "Custom" in v_emo: voice_emotion = translate_to_english(st.text_input("Emoción Custom", key="vec"))
                 else: voice_emotion = v_emo
             
-            d_txt = st.text_area("Guion / Letra:", placeholder="Escribe lo que dice/canta el personaje...")
+            d_txt = st.text_area("Guion / Diálogo:", placeholder="Escribe aquí el diálogo exacto...")
             dialogue_text = translate_to_english(d_txt)
 
     st.markdown("---")
-    st.markdown("### 🎵 Diseño Sonoro (Video)")
+    st.markdown("### 🎵 Diseño Sonoro (Música & SFX)")
     c1, c2, c3 = st.columns(3)
     with c1: 
-        m_sel = st.selectbox("Música (Video)", DEMO_AUDIO_MOOD)
+        m_sel = st.selectbox("Música", DEMO_AUDIO_MOOD)
         mus_vid = translate_to_english(st.text_input("Mus. Custom", key="mc")) if "Custom" in m_sel else m_sel
     with c2:
         e_aud = st.selectbox("Ambiente", DEMO_AUDIO_ENV)
@@ -390,50 +376,11 @@ with t5:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
-    # --- SUNO AI SECTION (INSIDE T5 NOW) ---
-    st.markdown("---")
-    with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
-        st.info("Genera el prompt para crear la canción en Suno AI.")
-        
-        suno_col1, suno_col2 = st.columns(2)
-        with suno_col1:
-            suno_instrumental = st.toggle("🎻 Instrumental", value=False, key="suno_instr_toggle")
-            suno_duration = st.slider("Duración Estimada", 30, 240, 120, step=30, format="%d seg", key="suno_dur")
-            
-            if suno_duration <= 45: struct_suggestion = "[Intro] [Short Hook] [Outro]"
-            elif suno_duration <= 90: struct_suggestion = "[Intro] [Verse] [Chorus] [Outro]"
-            else: struct_suggestion = "[Intro] [Verse] [Chorus] [Bridge] [Chorus] [Outro]"
-                
-        with suno_col2:
-            suno_genre = st.text_input("Estilo / Género", placeholder="Cyberpunk, Lo-Fi, Epic...", key="suno_gen")
-            suno_mood = st.text_input("Mood / Atmósfera", placeholder="Dark, Tense...", key="suno_mood")
-
-        suno_lyrics = ""
-        if not suno_instrumental:
-            suno_lyrics = st.text_area("Letra / Tema:", placeholder="Escribe la letra o describe el tema...", key="suno_lyr")
-
-        if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
-            meta_tags = []
-            if suno_instrumental: meta_tags.append("[Instrumental]")
-            if suno_genre: meta_tags.append(f"[{translate_to_english(suno_genre)}]")
-            if suno_mood: meta_tags.append(f"[{translate_to_english(suno_mood)}]")
-            
-            final_suno = f"Style Prompts: {' '.join(meta_tags)}\n\n"
-            final_suno += f"Structure Suggestion:\n{struct_suggestion}\n\n"
-            
-            if not suno_instrumental and suno_lyrics:
-                eng_lyrics = translate_to_english(suno_lyrics)
-                final_suno += f"Lyrics / Topic:\n[Verse]\n{eng_lyrics}\n\n[Chorus]\n..."
-            
-            st.code(final_suno, language="text")
-
 # GENERAR
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b = GrokVideoPromptBuilder()
     if st.session_state.uploaded_image_name:
         b.activate_img2video(st.session_state.uploaded_image_name, st.session_state.uploaded_end_frame_name)
-    if st.session_state.uploaded_audio_name:
-        b.activate_audio_sync(st.session_state.uploaded_audio_name)
     
     b.set_field('enhance_mode', enhance_mode)
     b.set_field('subject', final_sub)
@@ -466,3 +413,50 @@ if st.session_state.generated_output:
     st.subheader("📝 Prompt Final")
     final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
     st.code(st.session_state.generated_output, language="text")
+
+# --- SUNO AI AUDIO STATION (V41 UPGRADE) ---
+st.markdown("---")
+with st.expander("🎹 SUNO AI Audio Station", expanded=False):
+    st.info("Generador de Prompts optimizado para Suno v3.5 / v4")
+    
+    suno_col1, suno_col2 = st.columns(2)
+    
+    with suno_col1:
+        suno_instrumental = st.toggle("🎻 Instrumental", value=False, key="suno_instr_toggle")
+        
+        # Lógica de Duración (Mapeada a Estructura)
+        suno_duration = st.slider("Duración Estimada", 30, 240, 120, step=30, format="%d seg", key="suno_dur")
+        
+        # Traducir duración a estructura sugerida
+        if suno_duration <= 45:
+            struct_suggestion = "[Intro] [Short Hook] [Outro]"
+        elif suno_duration <= 90:
+            struct_suggestion = "[Intro] [Verse] [Chorus] [Outro]"
+        else:
+            struct_suggestion = "[Intro] [Verse] [Chorus] [Bridge] [Chorus] [Outro]"
+            
+    with suno_col2:
+        suno_genre = st.text_input("Estilo / Género", placeholder="Cyberpunk, Lo-Fi, Epic Orchestral...", key="suno_gen")
+        suno_mood = st.text_input("Mood / Atmósfera", placeholder="Dark, Tense, Uplifting...", key="suno_mood")
+
+    # Cajón de Letras (Solo si no es instrumental)
+    suno_lyrics = ""
+    if not suno_instrumental:
+        suno_lyrics = st.text_area("Letra / Tema (Topic)", placeholder="Escribe la letra o describe el tema de la canción...", key="suno_lyr")
+
+    if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
+        # Construcción del Prompt Suno
+        meta_tags = []
+        if suno_instrumental: meta_tags.append("[Instrumental]")
+        if suno_genre: meta_tags.append(f"[{translate_to_english(suno_genre)}]")
+        if suno_mood: meta_tags.append(f"[{translate_to_english(suno_mood)}]")
+        
+        # Construir salida
+        final_suno = f"Style Prompts: {' '.join(meta_tags)}\n\n"
+        final_suno += f"Structure Suggestion:\n{struct_suggestion}\n\n"
+        
+        if not suno_instrumental and suno_lyrics:
+            eng_lyrics = translate_to_english(suno_lyrics)
+            final_suno += f"Lyrics / Topic:\n[Verse]\n{eng_lyrics}\n\n[Chorus]\n..."
+        
+        st.code(final_suno, language="text")
