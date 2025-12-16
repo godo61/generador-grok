@@ -32,7 +32,7 @@ def apply_custom_styles(dark_mode=False):
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# LISTAS
+# Listas
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
 DEMO_WARDROBE = [
@@ -51,13 +51,6 @@ LIST_ANGLES = ["Neutral (Auto)", "Low Angle (Heroic/Ominous)", "High Angle (Vuln
 LIST_LENSES = ["Neutral (Auto)", "16mm Wide Angle (Expansive)", "35mm Prime (Street)", "50mm Lens (Natural)", "85mm f/1.4 (Portrait)", "100mm Macro (Detail)", "Fisheye (Distorted)"]
 DEMO_LIGHTING = ["Neutral (Auto)", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow", "Stark Space Sunlight"]
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "21:9 (Cinematic)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
-
-# AUDIO
-DEMO_AUDIO_MOOD = ["Neutral", "✏️ Custom...", "Intense Suspense", "Epic Orchestral", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
-DEMO_SFX = ["None", "✏️ Custom...", "Heavy breathing", "Footsteps", "Water splashing", "Explosion", "Laser blasts"]
-VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
-VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
-VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
 
 # GEM EXPANSION
 GEM_EXPANSION_PACK = {
@@ -236,7 +229,7 @@ st.title("🎬 Grok Production Studio (V69)")
 
 with st.form("main_form"):
     
-    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio", "📘 Guía"])
+    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
 
     with t1:
         c1, c2 = st.columns(2)
@@ -253,7 +246,7 @@ with st.form("main_form"):
             else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
         with c2:
-            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True, help="Si marcas esto, la IA añadirá detalles creativos (sudor, texturas, emociones) automáticamente a tu prompt final.")
+            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
 
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
@@ -295,74 +288,62 @@ with st.form("main_form"):
         st.info("💡 Usa 'Sugerir Look' en la barra lateral para que la IA configure esto por ti según tu texto.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Define cuánto se ve del sujeto. 'Extreme Long' para paisajes, 'Close-Up' para emociones.")
+            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Extreme Long: Paisajes épicos. Long: Cuerpo entero. Medium: Cintura arriba. Close-Up: Rostro y emoción.")
             st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
         with c2:
-            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle = Poder/Amenaza. High Angle = Vulnerabilidad. Dutch Angle = Caos/Terror.")
-            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="La luz define el 'mood'. Chiaroscuro para drama, Golden Hour para belleza épica.")
+            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle: Poder/Monstruos. High Angle: Debilidad. Dutch: Tensión/Terror.")
+            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="Chiaroscuro: Drama/Terror. Golden Hour: Épico/Bello. Neon: Futurista.")
         with c3:
-            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm = Épico/Abierto. 50mm = Ojo humano. 85mm = Retrato bonito. Macro = Detalles minúsculos.")
+            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm: Gran angular/Escala. 35mm: Cine clásico. 85mm: Retrato/Fondo borroso.")
             st.selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
 
     with t5:
-        st.markdown("### 🎙️ Audio & Lip Sync")
-        st.info("Sube el audio en la barra lateral o aquí.")
-        has_audio = st.checkbox("✅ Activar Lip-Sync")
+        st.subheader("🎹 Suno AI (Generador Musical)")
+        st.markdown("Genera prompts optimizados para música de intros y outros.")
         
-        st.markdown("---")
-        st.subheader("🎹 Suno AI (Generador de Música)")
         sc1, sc2 = st.columns(2)
         with sc1:
-            s_genre = st.text_input("Género (Ej: Cinematic Rock)")
+            s_genre = st.text_input("Género (Ej: Cinematic Rock, Lo-Fi)")
             s_inst = st.toggle("🎻 Instrumental")
         with sc2:
-            s_mood = st.text_input("Mood (Ej: Epic, Sad)")
+            s_mood = st.text_input("Mood (Ej: Epic, Scary, Sad)")
+            # Slider de duración CRUCIAL para intros/outros
+            s_dur = st.slider("Duración (Segundos)", 10, 300, 30, help="Define la estructura del prompt. Menos de 30s genera Intro/Outro.")
+
+        s_lyrics = st.text_area("Letra / Tema (si no es instrumental)", placeholder="Describe el tema o pega la letra...")
         
-        s_lyrics = st.text_area("Letra / Tema (si no es instrumental)")
-        
-        # Botón INTERNO del form para generar Suno (solo muestra texto, no recarga todo)
-        if st.form_submit_button("🎵 Generar Prompt Musical (SunoOnly)"):
-            tags = []
-            if s_inst: tags.append("[Instrumental]")
-            if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
-            if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
-            st.info(f"Copia esto en Suno:\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics)}")
+        st.markdown("---")
+        st.info("Configuración de Lip-Sync para Video (No Suno):")
+        has_audio = st.checkbox("✅ Activar Lip-Sync (Audio externo)")
 
     with t6:
-        st.header("📘 Manual de Usuario")
+        st.header("📘 Manual Maestro de Grok Studio")
         st.markdown("""
-        ### 🧠 Filosofía de la App
-        Esta herramienta funciona con dos "cerebros" que trabajan juntos:
-        
-        1.  **El Director (Botón 'Sugerir Look'):** * Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) antes de generar.
-            * *Úsalo cuando quieras ver y aprobar la configuración visual.*
-        
-        2.  **El Guionista (Modo Architect - Checkbox):**
-            * Trabaja en segundo plano al generar.
-            * Enriquece tu texto añadiendo detalles sensoriales (sudor, texturas, escombros) que Grok necesita para el realismo.
-            * *Úsalo siempre para resultados profesionales.*
+        ### 1. Filosofía de los Dos Cerebros
+        * **El Director (Botón 'Sugerir Look'):** Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) ANTES de generar. Úsalo para ver qué propone la IA y modificarlo si quieres.
+        * **El Guionista (Modo Architect - Checkbox):** Trabaja en SILENCIO al generar. Enriquece tu texto añadiendo detalles sensoriales (sudor, texturas, escombros) que Grok necesita para el realismo.
 
-        ---
-        ### 🎥 Glosario de Cinematografía
+        ### 2. Guía Técnica de Cinematografía
         
-        **Lentes (Ojos de la Cámara):**
-        * **16mm Wide Angle:** Expande el espacio. Ideal para paisajes épicos o monstruos gigantes.
-        * **35mm Prime:** El look clásico de cine y documental callejero.
-        * **50mm:** Lo más parecido al ojo humano. Natural y sin distorsión.
-        * **85mm / 100mm Macro:** Enfoca detalles pequeños (ojos, insectos, gotas). Fondo borroso (Bokeh).
-        * **Fisheye:** Distorsión curva extrema. Para escenas de locura o acción subjetiva (GoPro).
+        **🔭 Lentes (El Ojo de la Cámara)**
+        * **16mm Wide Angle:**  Abre mucho el campo de visión. Fundamental para mostrar **Monstruos Gigantes**, paisajes inmensos o persecuciones donde importa el entorno.
+        * **35mm Prime:** El estándar del cine y fotoperiodismo. Realista, crudo, documental.
+        * **50mm Lens:** Lo más parecido al ojo humano. Sin distorsión. Ideal para escenas tranquilas o de diálogo.
+        * **85mm / 100mm Macro:**  Zoom y detalle. Enfoca solo una parte (ojos, manos) y deja el fondo borroso (**Bokeh**).
+        * **Fisheye:** Distorsión curva extrema. Para escenas de locura, drogas o cámaras de seguridad/GoPro.
 
-        **Ángulos (Posición):**
-        * **Low Angle (Contrapicado):** Cámara abajo mirando arriba. Hace al sujeto poderoso o amenazante.
-        * **High Angle (Picado):** Cámara arriba mirando abajo. Hace al sujeto vulnerable.
-        * **Dutch Angle (Holandés):** Cámara inclinada. Genera tensión, miedo o desorientación.
-        
-        **Iluminación:**
-        * **Chiaroscuro / Low Key:** Muchas sombras, poco luz. Drama y misterio.
-        * **Golden Hour:** Luz solar baja y dorada. Estética y bonita.
-        * **Soft Overcast:** Luz suave sin sombras duras. Ideal para retratos tristes o neutros.
+        **📐 Ángulos (La Posición)**
+        * **Low Angle (Contrapicado):**  Cámara en el suelo mirando arriba. Hace al sujeto **Poderoso, Heroico o Aterrador**.
+        * **High Angle (Picado):** Cámara arriba mirando abajo. Hace al sujeto parecer pequeño, débil o vulnerable.
+        * **Dutch Angle (Holandés):**  Cámara torcida. Genera ansiedad, tensión, terror o locura.
+
+        **💡 Iluminación (El Alma)**
+        * **Chiaroscuro / Low Key:**  Contrastes fuertes, muchas sombras. Cine Negro, Terror, Drama intenso.
+        * **Golden Hour:** Luz solar baja, naranja y suave. Escenas épicas, finales felices, recuerdos.
+        * **Soft Overcast:** Luz blanca y difusa (día nublado). Ideal para que se vea todo bien sin dramatismo exagerado.
         """)
 
+    # BOTÓN GLOBAL
     submitted = st.form_submit_button("✨ GENERAR PROMPT PRO")
 
 # --- 9. PROCESAMIENTO ---
@@ -376,7 +357,6 @@ if submitted:
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
-    # Wardrobe Anchor
     ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
     b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
@@ -436,6 +416,20 @@ if submitted:
     b.add(f"CINEMATOGRAPHY: {'. '.join(cine_parts)}.")
     if final_sty: b.add(f"STYLE: {final_sty.split('(')[0]}")
     
+    # 4. Generación Suno (Si aplica)
+    if s_genre or s_mood:
+        # Lógica de estructura basada en duración
+        if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
+        elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
+        else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
+        
+        suno_tags = []
+        if s_inst: suno_tags.append("[Instrumental]")
+        if s_genre: suno_tags.append(f"[{translate_to_english(s_genre)}]")
+        if s_mood: suno_tags.append(f"[{translate_to_english(s_mood)}]")
+        
+        b.add(f"\n--- SUNO AUDIO PROMPT ---\nStyle: {' '.join(suno_tags)}\nStructure: {suno_struct}\nLyrics: {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}")
+
     ar_val = st.session_state.ar_select.split('(')[0].strip()
     b.add(f"--ar {ar_val}")
     
