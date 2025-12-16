@@ -28,7 +28,7 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATOS Y LISTAS ---
+# --- 3. DATOS Y LISTAS (DEFINICIÓN INICIAL) ---
 DEFAULT_CHARACTERS = {
     "TON (Base)": "a striking male figure (185cm), razor-sharp jawline, textured modern quiff hair, athletic build",
     "FREYA (Base)": "a statuesque female survivor, intense hazel eyes, wet skin texture, strong features",
@@ -48,7 +48,7 @@ LIST_LENSES = ["Neutral (Auto)", "✏️ Custom...", "16mm Wide Angle (Expansive
 DEMO_LIGHTING = ["Neutral (Auto)", "✏️ Custom...", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow (Cyberpunk)", "Stark Space Sunlight (Hard Shadows)", "Underwater Caustics", "Bioluminescence"]
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# Audio & Voz
+# Audio
 DEMO_AUDIO_MOOD = ["Neutral", "✏️ Custom...", "Intense Suspense", "Epic Orchestral", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
 DEMO_AUDIO_ENV = ["Neutral", "✏️ Custom...", "No Background", "Mars Wind", "River Roar", "Space Hum", "City Rain", "Jungle Sounds"]
 DEMO_SFX = ["None", "✏️ Custom...", "Heavy breathing", "Footsteps", "Water splashing", "Explosion", "Laser blasts"]
@@ -56,30 +56,29 @@ VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "C
 VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
 VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
 
-# FLAVOR TEXT (DETALLES RICOS)
+# FLAVOR TEXT (AMPILIADO PARA MORPHING)
 FLAVOR_TEXT = {
-    "monster": "massive scale, earth-shaking footsteps, debris flying, terrifying presence, ancient texture",
+    "monster": "massive scale, earth-shaking footsteps, debris flying, terrifying presence",
     "chase": "desperate expression, wind resistance, extreme motion blur, chaotic camera movement, adrenaline fueled",
-    "transform": "surreal morphing visuals, reality distortion, anatomical shifting from plastic to organic skin, glowing energy, intricate details",
+    # MÁS DETALLE AQUÍ PARA TU CASO:
+    "transform": "VFX SEQUENCE: seamless morphing from synthetic plastic texture to realistic organic skin and fur, anatomical shifting, reality distortion, glowing energy boundaries, intricate textural details",
     "scifi": "bioluminescent details, worn metal textures, holographic interfaces, futuristic atmosphere",
-    "nature": "organic textures, volumetric fog, particle systems, hyper-detailed flora, weather effects"
+    "nature": "organic textures, volumetric fog, particle systems, hyper-detailed flora"
 }
 
-# Plantillas
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
-    "🎤 Performance Musical (Lip Sync)": "Close-up on the subject singing passionately. Mouth moves in perfect sync with the audio. Emotions range from intense focus to release. Sweat on brow, dynamic lighting reflecting the rhythm.",
-    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic, looking back over shoulder. Behind them, a colossal creature is charging, kicking up debris.",
-    "🧟 Transformación Súbita": "At second 0, the scene is static. Suddenly, the inanimate object behind the subject rapidly transforms into a massive, living threat. The subject reacts with sheer terror.",
+    "🎤 Performance Musical (Lip Sync)": "Close-up on the subject singing passionately. Mouth moves in perfect sync with the audio. Emotions range from intense focus to release.",
+    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic. Behind them, a colossal creature is charging, kicking up debris.",
+    "🐘 Transformación (Plástico a Real)": "A small plastic toy elephant on a table begins to morph rapidly. The plastic texture cracks and transforms into realistic wrinkled grey skin and fur, growing in size into a real mammoth.",
 }
 
-# Física
 PHYSICS_LOGIC = {
     "Neutral / Estudio": [],
-    "🌌 Espacio (Zero-G)": ["Zero-G floating", "No air resistance", "Vacuum silence", "Floating debris"],
-    "🔴 Marte (Low-G)": ["Low gravity", "Red dust storms", "Heat distortion", "Dust settling slowly"],
-    "🌊 Agua (Superficie)": ["Turbulent flow", "White foam", "Wet fabric", "Water splashes"],
-    "🤿 Submarino": ["Weightless", "Light Caustics", "Bubbles", "Floating hair"],
+    "🌌 Espacio (Zero-G)": ["Zero-G floating", "No air resistance", "Vacuum silence"],
+    "🔴 Marte (Low-G)": ["Low gravity", "Red dust storms", "Heat distortion"],
+    "🌊 Agua (Superficie)": ["Turbulent flow", "White foam", "Wet fabric"],
+    "🤿 Submarino": ["Weightless", "Light Caustics", "Bubbles"],
     "❄️ Nieve": ["Falling snow", "Breath condensation", "Frost on lens"],
     "🌬️ Viento": ["High wind drag", "Fabric fluttering", "Motion blur"]
 }
@@ -111,17 +110,12 @@ for k, v in init_vars.items():
 
 # --- 5. FUNCIONES LÓGICAS ---
 def translate_to_english(text):
-    """Traducción robusta con fallback"""
     if not text or not str(text).strip(): return ""
-    
-    # 1. Intentar traducción
     if TRANSLATOR_AVAILABLE:
         try:
             return GoogleTranslator(source='auto', target='en').translate(str(text))
-        except Exception as e:
-            return str(text) # Fallback al original si falla la API
-            
-    # 2. Si no hay librería, devolver original
+        except:
+            return str(text)
     return str(text)
 
 def detect_and_set_ar(image_file):
@@ -142,38 +136,30 @@ def detect_and_set_ar(image_file):
 def apply_smart_look(action_text, env_text):
     txt = (action_text + " " + env_text).lower()
     
-    # Pool Seguro (Excluyendo extremos)
-    safe_shots = [s for s in LIST_SHOT_TYPES if "Macro" not in s and "Extreme Close" not in s and "Neutral" not in s]
-    safe_angles = [a for a in LIST_ANGLES if "Neutral" not in a]
-    safe_lenses = [l for l in LIST_LENSES if "Macro" not in l and "Fisheye" not in l and "Neutral" not in l]
-    safe_lits = [l for l in DEMO_LIGHTING if "Neutral" not in l]
-    safe_styles = [s for s in DEMO_STYLES if "Neutral" not in s]
-
     # Defaults
-    s_shot = random.choice(safe_shots)
-    s_angle = random.choice(safe_angles)
-    s_lens = random.choice(safe_lenses)
-    s_lit = random.choice(safe_lits)
-    s_sty = random.choice(safe_styles)
+    s_shot = random.choice([s for s in LIST_SHOT_TYPES if "Neutral" not in s])
+    s_angle = random.choice([a for a in LIST_ANGLES if "Neutral" not in a])
+    s_lens = random.choice([l for l in LIST_LENSES if "Neutral" not in l])
+    s_lit = random.choice([l for l in DEMO_LIGHTING if "Neutral" not in l])
+    s_sty = random.choice([s for s in DEMO_STYLES if "Neutral" not in s])
     
-    # REGLAS DE CONTEXTO
-    if any(x in txt for x in ["mamut", "mammoth", "colossal", "gigante", "monster", "beast", "titan", "elefante"]):
+    # Reglas Contextuales (Morphing añadido)
+    if any(x in txt for x in ["transform", "morph", "cambia", "plástico", "plastic", "toy", "juguete"]):
+        s_lens = "50mm Lens (Natural Eye)" # Para ver el detalle del cambio sin distorsión
+        s_sty = "Hyper-realistic VFX Render (Unreal 5)"
+        s_lit = "Dramatic Low-Key (Chiaroscuro)" # Contraste para resaltar texturas
+        s_shot = "Close-Up (Face Focus)" # Acercarse a la transformación
+
+    elif any(x in txt for x in ["mamut", "mammoth", "colossal", "gigante"]):
         s_shot = "Extreme Long Shot (Epic Scale)"
         s_angle = "Low Angle (Heroic/Ominous)"
-        s_lens = "16mm Wide Angle (Expansive)"
         s_lit = "Harsh Golden Hour"
-        s_sty = "Action Movie Screengrab"
 
-    elif any(x in txt for x in ["run", "correr", "chase", "persecución", "flee", "huyendo"]):
+    elif any(x in txt for x in ["run", "correr", "chase"]):
         s_shot = "Long Shot (Full Body)"
         s_angle = "Drone Aerial View (Establishing)"
         s_lens = "24mm Lens (Dynamic)"
         s_sty = "Gritty Documentary Footage"
-
-    elif any(x in txt for x in ["transform", "morph", "cambia", "plastic", "plástico"]):
-        s_lens = "35mm Prime (Street/Docu)" # Mejor para ver detalles medios
-        s_sty = "Hyper-realistic VFX Render (Unreal 5)"
-        s_lit = "Dramatic Low-Key (Chiaroscuro)" # Resalta el cambio de forma
 
     # Aplicar
     st.session_state['shot_select'] = s_shot
@@ -210,17 +196,15 @@ class GrokVideoPromptBuilder:
     def get_flavor(self, text):
         flavor = []
         txt = text.lower()
-        # PRIORIDAD 1: Transformación (Morphing)
-        if "transform" in txt or "morph" in txt or "plástico" in txt or "plastic" in txt:
+        # Detección mejorada de morphing
+        if any(x in txt for x in ["transform", "morph", "plástico", "plastic", "toy", "cambia"]):
             flavor.append(FLAVOR_TEXT["transform"])
-            self.explanation.append("🧬 Detectada Transformación: Añadidos detalles de morphing y distorsión.")
+            self.explanation.append("🧬 Transformación detectada: Inyectando 'Morphing VFX' al prompt.")
             
-        # PRIORIDAD 2: Monstruos
-        if "mamut" in txt or "monster" in txt or "beast" in txt or "elefante" in txt:
+        if any(x in txt for x in ["mamut", "monster", "beast", "gigante"]):
             flavor.append(FLAVOR_TEXT["monster"])
             
-        # PRIORIDAD 3: Persecución
-        if "run" in txt or "chase" in txt or "persecución" in txt:
+        if any(x in txt for x in ["run", "chase", "persecución"]):
             flavor.append(FLAVOR_TEXT["chase"])
             
         return ", ".join(flavor)
@@ -282,16 +266,15 @@ with t1:
         else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
     with c2:
-        # SEPARACIÓN DE LOGICA: El selector no sobrescribe automáticamente
-        tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()), key="tpl_select")
+        tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()))
         if st.button("📥 Aplicar Plantilla"):
             if tpl != "Seleccionar...":
                 st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
                 st.rerun()
 
     st.markdown("##### 📜 Descripción de la Acción")
-    # PERSISTENCIA ASEGURADA: Solo se actualiza si el usuario escribe
-    st.text_area("Describe la escena:", height=100, key="act_input")
+    # Captura directa del widget
+    input_text = st.text_area("Describe la escena:", height=100, key="act_input")
 
 with t2:
     c1, c2 = st.columns(2)
@@ -356,6 +339,7 @@ with t5:
     
     st.markdown("---")
     dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz", value=False)
+    voice_char, v_type, v_acc, v_emo, dialogue_text = "", "", "", "", ""
     if dialogue_enabled:
         with st.container(border=True):
             dc1, dc2 = st.columns(2)
@@ -380,11 +364,10 @@ with t5:
         s_sel = st.selectbox("SFX", DEMO_SFX)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
-# --- 9. GENERACIÓN DEL PROMPT ---
+# --- 9. GENERACIÓN DEL PROMPT FINAL ---
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
-    # PASO 1: LEER TEXTO FRESCO DEL ESTADO (CRÍTICO)
-    raw_action = st.session_state.get('act_input', "")
-    translated_action = translate_to_english(raw_action)
+    # TRADUCCIÓN INSTANTÁNEA EN EL CLICK
+    translated_action = translate_to_english(input_text)
     
     b = GrokVideoPromptBuilder()
     
@@ -400,26 +383,24 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     if "Custom" not in final_ward and final_ward: narrative.append(f"WEARING: {final_ward}")
     if final_prop: narrative.append(f"HOLDING: {final_prop}")
     
-    # AQUÍ ESTÁ LA MAGIA DEL MORPHING
+    # AQUÍ ES DONDE SE APLICA EL FLAVOR
     if translated_action:
         if enhance_mode:
-            # Detectar Flavor Específico (Morphing/Monster/Etc)
             flavor = b.get_flavor(translated_action)
             base_ints = "extreme motion blur, dynamic chaos, hyper-detailed textures"
-            if aud_file: base_ints += ", expressive singing"
+            if aud_file: base_ints += ", precise singing expression"
             
-            full_intensifiers = f"{flavor}, {base_ints}" if flavor else base_ints
+            # Si no hay flavor específico pero está activado enhance, usamos un base fuerte
+            full_intensifiers = f"{flavor}, {base_ints}" if flavor else f"{base_ints}, cinematic depth, atmospheric particles"
             
-            # Si hay transformación, usamos cabecera especial
-            if "transform" in flavor:
-                b.add_section(f"VISUAL EFFECTS SEQUENCE (MORPHING): {translated_action}. FEATURING: {full_intensifiers}.", "🧬 Morphing Mode Detected")
-            else:
-                b.add_section(f"VISCERAL ACTION SEQUENCE: {translated_action}. FEATURING: {full_intensifiers}.", "🔥 VFX Mode")
+            # Cambiar cabecera si es transformación
+            header = "VISUAL EFFECTS SEQUENCE (MORPHING)" if "transform" in flavor else "VISCERAL ACTION SEQUENCE"
+            b.add_section(f"{header}: {translated_action}. FEATURING: {full_intensifiers}.", "🔥 VFX Mode")
         else:
             b.add_section(f"ACTION: {translated_action}.")
     else:
-        # Fallback si no hay texto
-        if enhance_mode: b.add_section("ACTION: Cinematic idle motion, breathing, slight head turn.", "⚠️ No action text provided")
+        # Fallback de seguridad
+        b.add_section("ACTION: Cinematic idle motion, breathing, slight head turn.", "⚠️ No text detected")
     
     if "Custom" not in final_env and final_env: b.add_section(f"ENVIRONMENT: {final_env}.")
     elif enhance_mode and not final_env: b.add_section("ENVIRONMENT: Cinematic atmospheric background.")
