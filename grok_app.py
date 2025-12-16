@@ -82,12 +82,11 @@ DEMO_CAMERAS = [
 ]
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
-# --- LISTAS AUDIO & DIÁLOGO (NUEVO) ---
+# --- LISTAS AUDIO & DIÁLOGO ---
 DEMO_AUDIO_MOOD = ["✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
 DEMO_AUDIO_ENV = ["✏️ Custom...", "No Background", "Mars Wind", "River Rapids Roar", "Space Station Hum", "City Traffic Rain", "Jungle Sounds"]
 DEMO_SFX_COMMON = ["✏️ Custom...", "None", "Heavy breathing", "Footsteps on gravel", "Water splashing", "Explosion", "Laser blasts"]
 
-# Listas de Voz
 VOICE_TYPES = ["✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
 VOICE_ACCENTS = ["✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent", "Neutral"]
 VOICE_EMOTIONS = ["✏️ Custom...", "Neutral", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty"]
@@ -180,14 +179,12 @@ class GrokVideoPromptBuilder:
             
         if atmosphere: prompt.append(". ".join(atmosphere) + ".")
 
-        # 4. DIÁLOGO Y VOZ (NUEVO BLOQUE)
+        # 4. DIÁLOGO Y VOZ
         if p.get('dialogue_enabled'):
             dialogue_text = p.get('dialogue_text', '')
             if dialogue_text:
-                voice_block = []
                 voice_char = p.get('voice_char', 'Character')
                 
-                # Construcción de la descripción de voz
                 v_type = p.get('voice_type', '')
                 if "Custom" in v_type: v_type = ""
                 
@@ -204,7 +201,6 @@ class GrokVideoPromptBuilder:
                 
                 voice_str = f"({', '.join(voice_desc)})" if voice_desc else ""
                 
-                # Formato final para el prompt
                 prompt.append(f"DIALOGUE / LIP SYNC: {voice_char} speaks: \"{dialogue_text}\" {voice_str}.")
 
         # 5. CINE
@@ -215,7 +211,7 @@ class GrokVideoPromptBuilder:
         if p.get('style'): cinema.append(f"STYLE: {p['style']}")
         if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
 
-        # 6. AUDIO (MÚSICA Y SFX)
+        # 6. AUDIO
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
         if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
@@ -247,7 +243,8 @@ with st.sidebar:
     tc, to = st.tabs(["👤 Cast", "🎸 Props"])
     with tc:
         c_n = st.text_input("Nombre Actor")
-        c_d = st.text_area("Descripción")
+        # --- FIX: Clave única añadida aquí ---
+        c_d = st.text_area("Descripción", key="desc_actor_unique")
         if st.button("Guardar Actor"):
             if c_n and c_d:
                 st.session_state.characters[c_n] = translate_to_english(c_d)
@@ -255,7 +252,8 @@ with st.sidebar:
                 st.rerun()
     with to:
         o_n = st.text_input("Nombre Objeto")
-        o_d = st.text_area("Descripción")
+        # --- FIX: Clave única añadida aquí ---
+        o_d = st.text_area("Descripción", key="desc_prop_unique")
         if st.button("Guardar Objeto"):
             if o_n and o_d:
                 st.session_state.custom_props[o_n] = translate_to_english(o_d)
@@ -286,8 +284,6 @@ final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
 final_lit, final_cam = "", ""
 mus_vid, env_vid, sfx_vid = "", "", ""
 phy_med, phy_det = "Neutral / Estudio", []
-
-# VARS DIALOGO
 dialogue_enabled = False
 voice_char, voice_type, voice_accent, voice_emotion, dialogue_text = "", "", "", "", ""
 
@@ -353,17 +349,12 @@ with t5:
         with st.container(border=True):
             dc1, dc2 = st.columns(2)
             with dc1:
-                # Opciones de personajes para voz: Protagonista actual, Narrador, u otros del ADN
                 voice_opts = ["Protagonista Actual", "Narrador / Voiceover"] + list(st.session_state.characters.keys())
                 v_char_sel = st.selectbox("Personaje que habla", voice_opts)
                 
-                # Determinar nombre para el prompt
-                if v_char_sel == "Protagonista Actual":
-                    voice_char = "The Main Character"
-                elif v_char_sel == "Narrador / Voiceover":
-                    voice_char = "Narrator"
-                else:
-                    voice_char = v_char_sel
+                if v_char_sel == "Protagonista Actual": voice_char = "The Main Character"
+                elif v_char_sel == "Narrador / Voiceover": voice_char = "Narrator"
+                else: voice_char = v_char_sel
 
                 v_type = st.selectbox("Tipo de Voz", VOICE_TYPES)
                 if "Custom" in v_type: voice_type = translate_to_english(st.text_input("Tipo Voz Custom", key="vtc"))
