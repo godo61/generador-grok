@@ -184,13 +184,10 @@ class GrokVideoPromptBuilder:
             dialogue_text = p.get('dialogue_text', '')
             if dialogue_text:
                 voice_char = p.get('voice_char', 'Character')
-                
                 v_type = p.get('voice_type', '')
                 if "Custom" in v_type: v_type = ""
-                
                 v_accent = p.get('voice_accent', '')
                 if "Custom" in v_accent: v_accent = ""
-                
                 v_emotion = p.get('voice_emotion', '')
                 if "Custom" in v_emotion: v_emotion = ""
                 
@@ -200,7 +197,6 @@ class GrokVideoPromptBuilder:
                 if v_emotion: voice_desc.append(f"{v_emotion} tone")
                 
                 voice_str = f"({', '.join(voice_desc)})" if voice_desc else ""
-                
                 prompt.append(f"DIALOGUE / LIP SYNC: {voice_char} speaks: \"{dialogue_text}\" {voice_str}.")
 
         # 5. CINE
@@ -215,10 +211,8 @@ class GrokVideoPromptBuilder:
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
         if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
-        
         e_val = p.get('audio_env_custom') or p.get('audio_env')
         if e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
-
         s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
         if s_val and "Custom" not in s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
         
@@ -243,7 +237,6 @@ with st.sidebar:
     tc, to = st.tabs(["👤 Cast", "🎸 Props"])
     with tc:
         c_n = st.text_input("Nombre Actor")
-        # --- FIX: Clave única añadida aquí ---
         c_d = st.text_area("Descripción", key="desc_actor_unique")
         if st.button("Guardar Actor"):
             if c_n and c_d:
@@ -252,7 +245,6 @@ with st.sidebar:
                 st.rerun()
     with to:
         o_n = st.text_input("Nombre Objeto")
-        # --- FIX: Clave única añadida aquí ---
         o_d = st.text_area("Descripción", key="desc_prop_unique")
         if st.button("Guardar Objeto"):
             if o_n and o_d:
@@ -351,7 +343,6 @@ with t5:
             with dc1:
                 voice_opts = ["Protagonista Actual", "Narrador / Voiceover"] + list(st.session_state.characters.keys())
                 v_char_sel = st.selectbox("Personaje que habla", voice_opts)
-                
                 if v_char_sel == "Protagonista Actual": voice_char = "The Main Character"
                 elif v_char_sel == "Narrador / Voiceover": voice_char = "Narrator"
                 else: voice_char = v_char_sel
@@ -369,7 +360,7 @@ with t5:
                 if "Custom" in v_emo: voice_emotion = translate_to_english(st.text_input("Emoción Custom", key="vec"))
                 else: voice_emotion = v_emo
             
-            d_txt = st.text_area("Guion / Diálogo (Lo que dirá el personaje):", placeholder="Escribe aquí el diálogo exacto...")
+            d_txt = st.text_area("Guion / Diálogo:", placeholder="Escribe aquí el diálogo exacto...")
             dialogue_text = translate_to_english(d_txt)
 
     st.markdown("---")
@@ -406,8 +397,6 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('audio_mood', mus_vid)
     b.set_field('audio_env', env_vid)
     b.set_field('audio_sfx', sfx_vid)
-    
-    # CAMPOS DE DIÁLOGO
     b.set_field('dialogue_enabled', dialogue_enabled)
     b.set_field('dialogue_text', dialogue_text)
     b.set_field('voice_char', voice_char)
@@ -425,21 +414,49 @@ if st.session_state.generated_output:
     final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
     st.code(st.session_state.generated_output, language="text")
 
-# SUNO
+# --- SUNO AI AUDIO STATION (V41 UPGRADE) ---
 st.markdown("---")
 with st.expander("🎹 SUNO AI Audio Station", expanded=False):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        s_gen = st.selectbox("Género", ["Cinematic", "Cyberpunk", "Rock", "Lo-Fi", "Custom..."])
-        if s_gen == "Custom...": s_gen = st.text_input("Género Custom")
-    with c2:
-        s_str = st.selectbox("Estructura", ["Intro", "Loop", "Outro", "Build-up"])
-        s_bpm = st.slider("BPM", 60, 180, 120)
-    with c3:
-        s_moo = st.text_input("Mood", placeholder="Epic, Sad, Tense...")
-        s_ins = st.text_input("Instrumentos", placeholder="Violin, Synth...")
+    st.info("Generador de Prompts optimizado para Suno v3.5 / v4")
+    
+    suno_col1, suno_col2 = st.columns(2)
+    
+    with suno_col1:
+        suno_instrumental = st.toggle("🎻 Instrumental", value=False, key="suno_instr_toggle")
+        
+        # Lógica de Duración (Mapeada a Estructura)
+        suno_duration = st.slider("Duración Estimada", 30, 240, 120, step=30, format="%d seg", key="suno_dur")
+        
+        # Traducir duración a estructura sugerida
+        if suno_duration <= 45:
+            struct_suggestion = "[Intro] [Short Hook] [Outro]"
+        elif suno_duration <= 90:
+            struct_suggestion = "[Intro] [Verse] [Chorus] [Outro]"
+        else:
+            struct_suggestion = "[Intro] [Verse] [Chorus] [Bridge] [Chorus] [Outro]"
+            
+    with suno_col2:
+        suno_genre = st.text_input("Estilo / Género", placeholder="Cyberpunk, Lo-Fi, Epic Orchestral...", key="suno_gen")
+        suno_mood = st.text_input("Mood / Atmósfera", placeholder="Dark, Tense, Uplifting...", key="suno_mood")
 
-    if st.button("🎵 GENERAR SUNO"):
-        mo = translate_to_english(s_moo)
-        ins = translate_to_english(s_ins)
-        st.code(f"[{s_str}] [{s_gen}] [{s_bpm} BPM]\n{mo} atmosphere. Featuring {ins}.", language="text")
+    # Cajón de Letras (Solo si no es instrumental)
+    suno_lyrics = ""
+    if not suno_instrumental:
+        suno_lyrics = st.text_area("Letra / Tema (Topic)", placeholder="Escribe la letra o describe el tema de la canción...", key="suno_lyr")
+
+    if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
+        # Construcción del Prompt Suno
+        meta_tags = []
+        if suno_instrumental: meta_tags.append("[Instrumental]")
+        if suno_genre: meta_tags.append(f"[{translate_to_english(suno_genre)}]")
+        if suno_mood: meta_tags.append(f"[{translate_to_english(suno_mood)}]")
+        
+        # Construir salida
+        final_suno = f"Style Prompts: {' '.join(meta_tags)}\n\n"
+        final_suno += f"Structure Suggestion:\n{struct_suggestion}\n\n"
+        
+        if not suno_instrumental and suno_lyrics:
+            eng_lyrics = translate_to_english(suno_lyrics)
+            final_suno += f"Lyrics / Topic:\n[Verse]\n{eng_lyrics}\n\n[Chorus]\n..."
+        
+        st.code(final_suno, language="text")
