@@ -32,7 +32,7 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- DEFINICIÓN DE LISTAS (AL PRINCIPIO PARA EVITAR ERRORES) ---
+# --- DATOS MAESTROS (ASSETS GUARDADOS) ---
 DEFAULT_CHARACTERS = {
     "TON (Base)": "a striking male figure (185cm), razor-sharp jawline, textured modern quiff hair, athletic build",
     "FREYA (Base)": "a statuesque female survivor, intense hazel eyes, wet skin texture, strong features",
@@ -43,17 +43,21 @@ DEFAULT_PROPS = {
     "Linterna Táctica": "a high-lumen tactical flashlight"
 }
 
+# --- LISTAS DE SELECCIÓN (DEFINICIONES) ---
 DEMO_STYLES = ["Neutral (Grok Default)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula Background)", "🚀 ISS Space Station Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra (Snowstorm)", "🏙️ Cyberpunk City (Neon Rain)", "🌲 Mystic Forest (Fog)"]
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_LIGHTING = ["Neutral (Auto-Enhance)", "✏️ Custom...", "Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting (Chiaroscuro)", "Soft overcast diffusion", "Neon City Glow (Blue/Pink)", "Stark Space Sunlight (No Fill)", "Underwater Caustics", "Bioluminescence"]
 
-# LISTAS PRO
+# --- CORRECCIÓN: Lista DEMO_PROPS Restaurada ---
+DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
+
+# LISTAS PRO CINE
 LIST_SHOT_TYPES = ["Neutral (Auto-Compose)", "✏️ Custom...", "Extreme Long Shot (Gran Plano General)", "Long Shot (Plano General)", "Medium Shot (Plano Medio)", "Cowboy Shot (Plano Americano)", "Close-Up (Primer Plano)", "Extreme Close-Up (Macro Detalle)", "Over-The-Shoulder (Sobre el Hombro)"]
 LIST_ANGLES = ["Neutral (Eye Level)", "✏️ Custom...", "Low Angle (Contrapicado / Heroic)", "High Angle (Picado / Vulnerable)", "Dutch Angle (Plano Holandés / Tilted)", "Bird's Eye View (Vista de Pájaro)", "Drone Aerial View (FPV)", "POV (Point of View)"]
 LIST_LENSES = ["Neutral (Standard)", "✏️ Custom...", "16mm Wide Angle (Landscape/Angular)", "35mm Prime (Cinema/Street Look)", "50mm Lens (Human Eye)", "85mm f/1.4 (Portrait/Bokeh Intenso)", "100mm Macro (Micro Details)", "Canon L-Series Style (Pro Sharpness)", "Vintage Anamorphic (Lens Flares)", "Fisheye Lens (Distorted)"]
 
-# RATIOS (ORDEN IMPORTANTE)
+# RATIOS
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
 # AUDIO & VOZ
@@ -89,8 +93,11 @@ if 'generated_explanation' not in st.session_state: st.session_state.generated_e
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
 
-# Variables para controlar el reseteo del uploader
+# Variables para controlar el reseteo
 if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
+if 'sel_char_val' not in st.session_state: st.session_state.sel_char_val = "-- Seleccionar Protagonista --"
+if 'sel_env_index' not in st.session_state: st.session_state.sel_env_index = 0
+if 'ar_select' not in st.session_state: st.session_state.ar_select = DEMO_ASPECT_RATIOS[1] # Default 16:9
 
 # Variables SUGERIDAS (Indices)
 for k in ['rnd_lit', 'rnd_sty', 'rnd_lens', 'rnd_angle', 'rnd_shot']:
@@ -118,9 +125,8 @@ def detect_and_set_ar(image_file):
         elif ratio < 1.2 and ratio > 0.8: target_index = 4 # 1:1
         else: target_index = 3 # 4:3
         
-        # MAGIC FIX: Forzar el valor en session state para el widget con key 'ar_select'
-        # Usamos el valor real del array, no el índice, porque selectbox guarda el valor
-        st.session_state['ar_select'] = DEMO_ASPECT_RATIOS[target_index]
+        # MAGIC FIX: Forzar el valor en session state
+        st.session_state.ar_select = DEMO_ASPECT_RATIOS[target_index]
         return DEMO_ASPECT_RATIOS[target_index]
         
     except Exception as e:
@@ -129,10 +135,9 @@ def detect_and_set_ar(image_file):
 
 def suggest_cinematography(action_text, env_text):
     text_lower = (action_text + " " + env_text).lower()
-    # Defaults
     s_shot, s_angle, s_lens, s_lit, s_sty = 0, 0, 0, 0, 0
     
-    if "terror" in text_lower or "panic" in text_lower or "scream" in text_lower:
+    if "terror" in text_lower or "panic" in text_lower:
         s_angle = 4; s_lit = 3; s_shot = 6; s_sty = 4
     elif "run" in text_lower or "sprint" in text_lower:
         s_shot = 3; s_angle = 2; s_lens = 2; s_sty = 5
@@ -270,9 +275,7 @@ with st.sidebar:
     
     # 1. Sugerencia Inteligente
     if st.button("🎲 Sugerir Look (Basado en Contexto)"):
-        # Leemos el estado actual directamente
         curr_action = st.session_state.get('input_action', '')
-        # Intentamos leer el entorno del estado si existe
         curr_env = st.session_state.get('env_select', '')
         
         s_shot, s_angle, s_lens, s_lit, s_sty = suggest_cinematography(curr_action, str(curr_env))
@@ -285,33 +288,29 @@ with st.sidebar:
         st.toast("✨ Look aplicado!")
         st.rerun()
 
-    # 2. Reset Total (CON TRUCO DE KEY)
+    # 2. Reset Total
     if st.button("🗑️ Nueva Escena (Reset)", type="secondary"):
         st.session_state.generated_output = ""
         st.session_state.generated_explanation = ""
         for k in ['rnd_shot', 'rnd_angle', 'rnd_lens', 'rnd_lit', 'rnd_sty']: st.session_state[k] = 0
-        # Forzamos cambio de key para limpiar uploader
         st.session_state.uploader_key += 1 
-        # Limpiamos selección de personaje forzando None
-        st.session_state.pop('char_select', None)
+        st.session_state.sel_char_val = "-- Seleccionar Protagonista --"
         st.rerun()
     
     # 3. Activos
     st.markdown("---")
     st.header("🖼️ Referencias")
     
-    # UPLOAD DE IMAGEN CON AR DETECTION FIX
-    # Usamos uploader_key para poder resetearlo
+    # UPLOAD DE IMAGEN (Con corrección de AR)
     u_file = st.file_uploader("Start Frame", type=["jpg", "png"], key=f"uploader_{st.session_state.uploader_key}")
     
     if u_file:
-        # Check AR change logic
         if 'last_img_name' not in st.session_state or st.session_state.last_img_name != u_file.name:
             detected_val = detect_and_set_ar(u_file)
             st.session_state.last_img_name = u_file.name
             if detected_val:
                 st.toast(f"📏 AR Detectado: {detected_val}")
-                st.rerun() # Rerun para que el widget de abajo se actualice visualmente
+                st.rerun()
     
     u_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"uploader_end_{st.session_state.uploader_key}")
 
@@ -332,20 +331,27 @@ voice_char, voice_type, voice_accent, voice_emotion, dialogue_text = "", "", "",
 with t1:
     c_a, c_b = st.columns(2)
     with c_a:
-        # LISTA DINÁMICA DE PROTAGONISTAS
+        # LISTA DINÁMICA
         char_opts = ["-- Seleccionar Protagonista --"] 
-        # Si hay fichero subido, AÑADIMOS la opción y LA SELECCIONAMOS SI NO HAY OTRA
         if u_file: char_opts.insert(1, "📷 Sujeto de la Foto (Usar Referencia)")
         char_opts += list(st.session_state.characters.keys())
         
-        # LÓGICA DE PERSISTENCIA DEL SELECTOR
-        # El widget usa 'key'. Si session_state['char_select'] tiene valor, lo usa.
-        # Si el valor guardado ya no está en la lista (raro), se resetea.
+        # PERSISTENCIA ROBUSTA
+        # Verificar que el valor guardado siga siendo válido
+        current_val = st.session_state.sel_char_val
+        if current_val not in char_opts: 
+            # Si hay foto, por defecto la foto
+            if u_file: current_val = "📷 Sujeto de la Foto (Usar Referencia)"
+            else: current_val = "-- Seleccionar Protagonista --"
+            
+        current_index = char_opts.index(current_val)
+            
+        char_sel = st.selectbox("Protagonista", char_opts, index=current_index, key="char_select")
         
-        # Render del widget
-        char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
+        # UPDATE STATE
+        if char_sel != st.session_state.sel_char_val:
+            st.session_state.sel_char_val = char_sel
         
-        # Procesar valor
         if "📷" in char_sel: final_sub = "" 
         elif "--" in char_sel: final_sub = ""
         else: final_sub = st.session_state.characters.get(char_sel, "")
@@ -383,10 +389,6 @@ with t3:
     with c2: phy_det = st.multiselect("Detalles Activos", PHYSICS_LOGIC[phy_med])
 
 with t4:
-    # --- CINEMATOGRAFÍA ---
-    # Usamos session_state.rnd_* como index para controlar desde el botón random
-    # IMPORTANTE: key única para cada widget para que mantengan estado manual también
-    
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**1. Encuadre**")
@@ -395,8 +397,20 @@ with t4:
         else: final_shot = shot_sel
         
         st.markdown("**4. Formato (Auto-detect)**")
-        # Aquí la key='ar_select' es CRÍTICA porque detect_and_set_ar escribe en ella
-        ar = st.selectbox("Aspect Ratio", DEMO_ASPECT_RATIOS, key="ar_select")
+        # El index ya no importa, el valor se fuerza desde session_state['ar_select']
+        # Si no existe en session state, inicializamos
+        if 'ar_select' not in st.session_state: st.session_state.ar_select = DEMO_ASPECT_RATIOS[1]
+        
+        # Encontrar el índice actual del valor guardado
+        try:
+            current_ar_idx = DEMO_ASPECT_RATIOS.index(st.session_state.ar_select)
+        except:
+            current_ar_idx = 1
+            
+        ar = st.selectbox("Aspect Ratio", DEMO_ASPECT_RATIOS, index=current_ar_idx, key="ar_widget")
+        # Sincronización inversa (si el usuario lo cambia a mano)
+        if ar != st.session_state.ar_select:
+            st.session_state.ar_select = ar
 
     with c2:
         st.markdown("**2. Ángulo**")
@@ -422,7 +436,6 @@ with t5:
     st.markdown("### 🎙️ Estudio de Voz y Lip Sync")
     st.markdown("""<div class="big-warning">⚠️ <b>IMPORTANTE:</b> Sube el audio real a la IA de vídeo.</div>""", unsafe_allow_html=True)
     
-    # UPLOADER DE AUDIO (Resetable)
     audio_file = st.file_uploader("📂 Subir Audio (MP3/WAV)", type=["mp3", "wav", "m4a"], key=f"audio_uploader_{st.session_state.uploader_key}")
     if audio_file:
         st.audio(audio_file)
@@ -495,8 +508,10 @@ with t5:
 # GENERAR
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b = GrokVideoPromptBuilder()
-    if u_file: b.activate_img2video(u_file.name, u_end.name if u_end else None)
-    if audio_name: b.activate_audio_sync(audio_name)
+    if st.session_state.uploaded_image_name:
+        b.activate_img2video(st.session_state.uploaded_image_name, st.session_state.uploaded_end_frame_name)
+    if st.session_state.uploaded_audio_name:
+        b.activate_audio_sync(st.session_state.uploaded_audio_name)
     
     b.set_field('enhance_mode', enhance_mode)
     b.set_field('subject', final_sub)
@@ -506,18 +521,15 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('env', final_env)
     b.set_field('physics_medium', phy_med)
     b.set_field('physics_details', phy_det)
-    
     b.set_field('shot_type', final_shot)
     b.set_field('angle', final_angle)
     b.set_field('lens', final_lens)
     b.set_field('light', final_lit)
     b.set_field('style', sty)
     b.set_field('ar', ar)
-    
     b.set_field('audio_mood', mus_vid)
     b.set_field('audio_env', env_vid)
     b.set_field('audio_sfx', sfx_vid)
-    
     b.set_field('dialogue_enabled', dialogue_enabled)
     b.set_field('dialogue_text', dialogue_text)
     b.set_field('voice_char', voice_char)
@@ -536,3 +548,4 @@ if st.session_state.generated_output:
         st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
     st.code(st.session_state.generated_output, language="text")
+    st.caption("👆 Pulsa el icono de 'Copiar' en la esquina superior derecha del bloque negro.")
