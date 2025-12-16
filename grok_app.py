@@ -80,7 +80,10 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering", "Motion blur"]
 }
 
-# --- 4. GESTIÓN DE ESTADO (SESSION STATE) ---
+# --- 4. GESTIÓN DE ESTADO (PERSISTENCIA) ---
+# Inicializar variables críticas
+if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
+if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
 if 'history' not in st.session_state: st.session_state.history = []
@@ -272,7 +275,7 @@ with t1:
         tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()))
         if tpl != "Seleccionar...":
             st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
-            # No forzamos rerun, el usuario ve el cambio instantáneo en el text_area
+            # No forzamos rerun, el usuario verá el cambio instantáneo en el text_area
 
     st.markdown("##### 📜 Descripción de la Acción")
     act_val = st.text_area("Describe la escena:", height=100, key="act_input")
