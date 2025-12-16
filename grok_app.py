@@ -9,7 +9,7 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🗣️")
 
 # --- ESTILOS CSS ---
 def apply_custom_styles(dark_mode=False):
@@ -24,6 +24,8 @@ def apply_custom_styles(dark_mode=False):
         [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; }}
         [data-testid="sttoggle"] span {{ font-weight: bold; color: #FF4B4B; }}
+        /* Estilo para el cajón de diálogo */
+        .stTextArea textarea {{ border-left: 5px solid #FF4B4B !important; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -43,7 +45,6 @@ if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
 if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
-
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
 
@@ -55,61 +56,43 @@ def translate_to_english(text):
         except: return str(text)
     return str(text)
 
-# --- LISTAS COMPLETAS (RESTAURADAS) ---
+# --- LISTAS GENERALES ---
 DEMO_STYLES = [
     "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", 
     "National Geographic Wildlife Style", "Gritty Documentary Footage", 
     "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"
 ]
-
-# ENTORNOS RESTAURADOS
 DEMO_ENVIRONMENTS = [
-    "✏️ Custom...", 
-    "🛶 Dusi River (Turbulent Rapids)", 
-    "🔴 Mars Surface (Red Dust)", 
-    "🌌 Deep Space (Nebula Background)", 
-    "🚀 ISS Space Station Interior", 
-    "🌊 Underwater Coral Reef", 
-    "❄️ Arctic Tundra (Snowstorm)", 
-    "🏙️ Cyberpunk City (Neon Rain)", 
-    "🌲 Mystic Forest (Fog)"
+    "✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", 
+    "🌌 Deep Space (Nebula Background)", "🚀 ISS Space Station Interior", 
+    "🌊 Underwater Coral Reef", "❄️ Arctic Tundra (Snowstorm)", 
+    "🏙️ Cyberpunk City (Neon Rain)", "🌲 Mystic Forest (Fog)"
 ]
-
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
-
-# ILUMINACIÓN RESTAURADA
 DEMO_LIGHTING = [
-    "✏️ Custom...",
-    "Harsh golden hour sunlight (long shadows)", 
-    "Dramatic low-key lighting (Chiaroscuro)", 
-    "Soft overcast diffusion", 
-    "Neon City Glow (Blue/Pink)", 
-    "Stark Space Sunlight (No Fill)", 
-    "Underwater Caustics",
-    "Bioluminescence"
+    "✏️ Custom...", "Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting (Chiaroscuro)", 
+    "Soft overcast diffusion", "Neon City Glow (Blue/Pink)", "Stark Space Sunlight (No Fill)", 
+    "Underwater Caustics", "Bioluminescence"
 ]
-
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
-
-# CÁMARAS RESTAURADAS
 DEMO_CAMERAS = [
-    "✏️ Custom...",
-    "Low angle, wide lens (looking up)", 
-    "Handheld dynamic shake (Chaos)", 
-    "Telephoto compression (85mm, Bokeh)", 
-    "Drone follow Shot (High Angle)", 
-    "GoPro POV (Fisheye)", 
-    "Underwater Housing (Split-level)"
+    "✏️ Custom...", "Low angle, wide lens (looking up)", "Handheld dynamic shake (Chaos)", 
+    "Telephoto compression (85mm, Bokeh)", "Drone follow Shot (High Angle)", 
+    "GoPro POV (Fisheye)", "Underwater Housing (Split-level)"
 ]
-
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
-# AUDIO CUSTOM RESTAURADO
+# --- LISTAS AUDIO & DIÁLOGO (NUEVO) ---
 DEMO_AUDIO_MOOD = ["✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
 DEMO_AUDIO_ENV = ["✏️ Custom...", "No Background", "Mars Wind", "River Rapids Roar", "Space Station Hum", "City Traffic Rain", "Jungle Sounds"]
 DEMO_SFX_COMMON = ["✏️ Custom...", "None", "Heavy breathing", "Footsteps on gravel", "Water splashing", "Explosion", "Laser blasts"]
 
-# FÍSICA COMPLETA (RESTAURADA)
+# Listas de Voz
+VOICE_TYPES = ["✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
+VOICE_ACCENTS = ["✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent", "Neutral"]
+VOICE_EMOTIONS = ["✏️ Custom...", "Neutral", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty"]
+
+# --- FÍSICA ---
 PHYSICS_LOGIC = {
     "Neutral / Estudio": [],
     "🌌 Espacio (Gravedad Cero)": ["Zero-G floating", "No air resistance", "Stark lighting", "Vacuum silence", "Floating debris"],
@@ -120,14 +103,11 @@ PHYSICS_LOGIC = {
     "🌬️ Aire / Vuelo": ["High wind drag", "Fabric fluttering wildly", "Motion blur", "Aerodynamic trails"]
 }
 
-# PLANTILLAS NARRATIVAS
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
     "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic, looking back over shoulder. Behind them, a colossal creature is charging, kicking up debris.",
     "🧟 Transformación Súbita": "At second 0, the scene is static. Suddenly, the inanimate object behind the subject rapidly transforms into a massive, living threat. The subject reacts with sheer terror.",
     "😱 Reacción de Pánico": "Close-up on the subject's face as they realize the danger. Expression shifts from calm to screaming panic. They scramble backward, falling.",
-    "🚀 Despegue / Lanzamiento": "Smoke fills the frame. The subject looks up in awe as a massive structure begins to lift off. Debris flies everywhere. Intense vibration.",
-    "🌊 Acción en el Agua": "The subject battles against the raging current. Water crashes over them. They gasp for air, paddling desperately to stay afloat."
 }
 
 # --- BUILDER ---
@@ -156,10 +136,8 @@ class GrokVideoPromptBuilder:
             if self.end_image_filename: prompt.append(f"End Frame: '{self.end_image_filename}'.")
             prompt.append("Maintain strict visual consistency with references.")
 
-        # 2. NARRATIVA & VFX ENHANCER
+        # 2. NARRATIVA
         narrative_block = []
-        
-        # Sujeto
         subject = p.get('subject', '')
         wardrobe = p.get('wardrobe_custom') or p.get('wardrobe', '')
         if "Custom" in wardrobe: wardrobe = ""
@@ -174,7 +152,6 @@ class GrokVideoPromptBuilder:
         if subject_details:
             narrative_block.append(f"MAIN SUBJECT: {', '.join(subject_details)}.")
 
-        # Acción
         action_raw = p.get('action', '')
         enhance_mode = p.get('enhance_mode', False)
         
@@ -185,7 +162,6 @@ class GrokVideoPromptBuilder:
             else:
                 narrative_block.append(f"ACTION: {action_raw}.")
 
-        # Entorno
         env = p.get('env_custom') or p.get('env', '')
         if "Custom" in env: env = ""
         if env: narrative_block.append(f"ENVIRONMENT: {env}.")
@@ -194,29 +170,52 @@ class GrokVideoPromptBuilder:
 
         # 3. FÍSICA Y ATMÓSFERA
         atmosphere = []
-        
-        # Luz
         lit_val = p.get('light_custom') or p.get('light', '')
         if "Custom" in lit_val: lit_val = ""
         if lit_val: atmosphere.append(f"LIGHTING: {lit_val}")
         
-        # Física
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
             dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
             if dets: atmosphere.append(f"PHYSICS & ATMOSPHERE: {', '.join(dets)}")
             
         if atmosphere: prompt.append(". ".join(atmosphere) + ".")
 
-        # 4. CINE
+        # 4. DIÁLOGO Y VOZ (NUEVO BLOQUE)
+        if p.get('dialogue_enabled'):
+            dialogue_text = p.get('dialogue_text', '')
+            if dialogue_text:
+                voice_block = []
+                voice_char = p.get('voice_char', 'Character')
+                
+                # Construcción de la descripción de voz
+                v_type = p.get('voice_type', '')
+                if "Custom" in v_type: v_type = ""
+                
+                v_accent = p.get('voice_accent', '')
+                if "Custom" in v_accent: v_accent = ""
+                
+                v_emotion = p.get('voice_emotion', '')
+                if "Custom" in v_emotion: v_emotion = ""
+                
+                voice_desc = []
+                if v_type: voice_desc.append(v_type)
+                if v_accent: voice_desc.append(f"{v_accent} accent")
+                if v_emotion: voice_desc.append(f"{v_emotion} tone")
+                
+                voice_str = f"({', '.join(voice_desc)})" if voice_desc else ""
+                
+                # Formato final para el prompt
+                prompt.append(f"DIALOGUE / LIP SYNC: {voice_char} speaks: \"{dialogue_text}\" {voice_str}.")
+
+        # 5. CINE
         cinema = []
         cam_val = p.get('camera_custom') or p.get('camera', '')
         if "Custom" in cam_val: cam_val = ""
         if cam_val: cinema.append(cam_val)
-        
         if p.get('style'): cinema.append(f"STYLE: {p['style']}")
         if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
 
-        # 5. AUDIO
+        # 6. AUDIO (MÚSICA Y SFX)
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
         if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
@@ -227,7 +226,7 @@ class GrokVideoPromptBuilder:
         s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
         if s_val and "Custom" not in s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
         
-        if audio_parts: prompt.append(f"AUDIO: {'. '.join(audio_parts)}.")
+        if audio_parts: prompt.append(f"SOUND DESIGN: {'. '.join(audio_parts)}.")
 
         if p.get('ar'): prompt.append(f"--ar {p['ar'].split(' ')[0]}")
 
@@ -245,8 +244,6 @@ with st.sidebar:
         st.rerun()
     
     st.header("🧬 Activos")
-    st.info("Para crear uno NUEVO: Escribe el nombre y dale a guardar. Para EDITAR: Escribe el nombre de uno existente.")
-    
     tc, to = st.tabs(["👤 Cast", "🎸 Props"])
     with tc:
         c_n = st.text_input("Nombre Actor")
@@ -254,15 +251,15 @@ with st.sidebar:
         if st.button("Guardar Actor"):
             if c_n and c_d:
                 st.session_state.characters[c_n] = translate_to_english(c_d)
-                st.success(f"Actor '{c_n}' guardado.")
+                st.success(f"Guardado: {c_n}")
                 st.rerun()
     with to:
         o_n = st.text_input("Nombre Objeto")
-        o_d = st.text_area("Descripción Visual")
+        o_d = st.text_area("Descripción")
         if st.button("Guardar Objeto"):
             if o_n and o_d:
                 st.session_state.custom_props[o_n] = translate_to_english(o_d)
-                st.success(f"Objeto '{o_n}' guardado.")
+                st.success(f"Guardado: {o_n}")
                 st.rerun()
 
     st.markdown("---")
@@ -272,8 +269,7 @@ with st.sidebar:
         st.session_state.uploaded_image_name = u_file.name
         st.image(u_file, caption="Inicio")
     else: st.session_state.uploaded_image_name = None
-    
-    u_end = st.file_uploader("End Frame (Opcional)", type=["jpg", "png"])
+    u_end = st.file_uploader("End Frame", type=["jpg", "png"])
     if u_end:
         st.session_state.uploaded_end_frame_name = u_end.name
         st.image(u_end, caption="Final")
@@ -283,14 +279,17 @@ with st.sidebar:
 st.title("🎬 Grok Production Studio (VFX Edition)")
 enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Añadir detalle visceral, blur, sudor...)", value=True)
 
-# PESTAÑAS (COMPLETAS)
-t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio"])
+t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio & Voz"])
 
-# VARS
+# VARS INIT
 final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
 final_lit, final_cam = "", ""
 mus_vid, env_vid, sfx_vid = "", "", ""
 phy_med, phy_det = "Neutral / Estudio", []
+
+# VARS DIALOGO
+dialogue_enabled = False
+voice_char, voice_type, voice_accent, voice_emotion, dialogue_text = "", "", "", "", ""
 
 with t1:
     c_a, c_b = st.columns(2)
@@ -305,10 +304,7 @@ with t1:
         tpl_txt = NARRATIVE_TEMPLATES[tpl]
 
     st.markdown("##### 📜 Descripción de la Acción")
-    act_val = st.text_area("Describe la escena (Inglés o Español):", 
-                          value=tpl_txt, 
-                          height=100, 
-                          placeholder="Ej: El elefante se levanta y ataca, el sujeto corre aterrorizado...")
+    act_val = st.text_area("Describe la escena (Inglés o Español):", value=tpl_txt, height=100, placeholder="Ej: El elefante ataca...")
     final_act = translate_to_english(act_val)
 
 with t2:
@@ -332,10 +328,8 @@ with t2:
 with t3:
     st.markdown("##### ⚛️ Simulación Física")
     c1, c2 = st.columns(2)
-    with c1:
-        phy_med = st.selectbox("Entorno Físico", list(PHYSICS_LOGIC.keys()))
-    with c2:
-        phy_det = st.multiselect("Detalles Activos", PHYSICS_LOGIC[phy_med])
+    with c1: phy_med = st.selectbox("Entorno Físico", list(PHYSICS_LOGIC.keys()))
+    with c2: phy_det = st.multiselect("Detalles Activos", PHYSICS_LOGIC[phy_med])
 
 with t4:
     c1, c2, c3 = st.columns(3)
@@ -352,6 +346,43 @@ with t4:
         ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
 
 with t5:
+    st.markdown("### 🎙️ Estudio de Voz y Diálogo")
+    dialogue_enabled = st.toggle("🗣️ Habilitar Diálogo / Voiceover", value=False)
+    
+    if dialogue_enabled:
+        with st.container(border=True):
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                # Opciones de personajes para voz: Protagonista actual, Narrador, u otros del ADN
+                voice_opts = ["Protagonista Actual", "Narrador / Voiceover"] + list(st.session_state.characters.keys())
+                v_char_sel = st.selectbox("Personaje que habla", voice_opts)
+                
+                # Determinar nombre para el prompt
+                if v_char_sel == "Protagonista Actual":
+                    voice_char = "The Main Character"
+                elif v_char_sel == "Narrador / Voiceover":
+                    voice_char = "Narrator"
+                else:
+                    voice_char = v_char_sel
+
+                v_type = st.selectbox("Tipo de Voz", VOICE_TYPES)
+                if "Custom" in v_type: voice_type = translate_to_english(st.text_input("Tipo Voz Custom", key="vtc"))
+                else: voice_type = v_type
+
+            with dc2:
+                v_acc = st.selectbox("Acento", VOICE_ACCENTS)
+                if "Custom" in v_acc: voice_accent = translate_to_english(st.text_input("Acento Custom", key="vac"))
+                else: voice_accent = v_acc
+
+                v_emo = st.selectbox("Emoción", VOICE_EMOTIONS)
+                if "Custom" in v_emo: voice_emotion = translate_to_english(st.text_input("Emoción Custom", key="vec"))
+                else: voice_emotion = v_emo
+            
+            d_txt = st.text_area("Guion / Diálogo (Lo que dirá el personaje):", placeholder="Escribe aquí el diálogo exacto...")
+            dialogue_text = translate_to_english(d_txt)
+
+    st.markdown("---")
+    st.markdown("### 🎵 Diseño Sonoro (Música & SFX)")
     c1, c2, c3 = st.columns(3)
     with c1: 
         m_sel = st.selectbox("Música", DEMO_AUDIO_MOOD)
@@ -384,6 +415,14 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('audio_mood', mus_vid)
     b.set_field('audio_env', env_vid)
     b.set_field('audio_sfx', sfx_vid)
+    
+    # CAMPOS DE DIÁLOGO
+    b.set_field('dialogue_enabled', dialogue_enabled)
+    b.set_field('dialogue_text', dialogue_text)
+    b.set_field('voice_char', voice_char)
+    b.set_field('voice_type', voice_type)
+    b.set_field('voice_accent', voice_accent)
+    b.set_field('voice_emotion', voice_emotion)
     
     res = b.build()
     st.session_state.generated_output = res
