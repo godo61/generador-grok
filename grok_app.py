@@ -25,6 +25,7 @@ def apply_custom_styles(dark_mode=False):
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; border-left: 5px solid #FF4B4B !important; }}
         .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
         .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; color: #EEE; font-style: italic; }}
+        .stButton button {{ width: 100%; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -32,18 +33,10 @@ def apply_custom_styles(dark_mode=False):
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# LISTAS
+# Listas
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-DEMO_WARDROBE = [
-    "✏️ Custom...", 
-    "Short-sleeve grey t-shirt (Cotton texture)", 
-    "Short-sleeve tactical shirt (Ripstop)",
-    "Long-sleeve denim shirt (Rolled up)", 
-    "NASA EVA Spacesuit (Bulky)", 
-    "Tactical Wetsuit (Neoprene)", 
-    "Elegant Suit (Three piece)"
-]
+DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
 LIST_SHOT_TYPES = ["Neutral (Auto)", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)"]
@@ -52,14 +45,7 @@ LIST_LENSES = ["Neutral (Auto)", "16mm Wide Angle (Expansive)", "35mm Prime (Str
 DEMO_LIGHTING = ["Neutral (Auto)", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow", "Stark Space Sunlight"]
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "21:9 (Cinematic)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# AUDIO
-DEMO_AUDIO_MOOD = ["Neutral", "✏️ Custom...", "Intense Suspense", "Epic Orchestral", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
-DEMO_SFX = ["None", "✏️ Custom...", "Heavy breathing", "Footsteps", "Water splashing", "Explosion", "Laser blasts"]
-VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
-VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
-VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
-
-# GEM EXPANSION
+# Expansion Logic
 GEM_EXPANSION_PACK = {
     "run": "sweat and mud on a face contorted in panic, heavy motion blur",
     "correr": "sweat and mud on a face contorted in panic, heavy motion blur",
@@ -204,7 +190,7 @@ class PromptBuilder:
 
 # --- 7. INTERFAZ ---
 with st.sidebar:
-    st.title("🔥 Config VFX")
+    st.title("🔥 Grok Studio V71")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
     if st.button("🎲 Sugerir Look (Aplicar)"):
@@ -232,11 +218,12 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V69)")
+st.title("🎬 Grok Production Studio")
 
+# FORMULARIO PRINCIPAL
 with st.form("main_form"):
     
-    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio", "📘 Guía"])
+    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
 
     with t1:
         c1, c2 = st.columns(2)
@@ -253,7 +240,7 @@ with st.form("main_form"):
             else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
         with c2:
-            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True, help="Si marcas esto, la IA añadirá detalles creativos (sudor, texturas, emociones) automáticamente a tu prompt final.")
+            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
 
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
@@ -281,7 +268,7 @@ with st.form("main_form"):
             else: final_prop = ""
 
         with c2:
-            st.info("💡 Consejo: Elige manga corta/larga explícitamente para evitar que la IA la cambie.")
+            st.info("💡 Consejo: Elige manga corta/larga explícitamente.")
             ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
             if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
             else: final_ward = ward_sel
@@ -292,95 +279,89 @@ with st.form("main_form"):
         with c2: phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
     with t4:
-        st.info("💡 Usa 'Sugerir Look' en la barra lateral para que la IA configure esto por ti según tu texto.")
+        st.info("💡 Usa 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Define cuánto se ve del sujeto. 'Extreme Long' para paisajes, 'Close-Up' para emociones.")
+            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Extreme Long: Paisajes épicos. Long: Cuerpo entero. Medium: Cintura arriba. Close-Up: Rostro y emoción.")
             st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
         with c2:
-            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle = Poder/Amenaza. High Angle = Vulnerabilidad. Dutch Angle = Caos/Terror.")
-            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="La luz define el 'mood'. Chiaroscuro para drama, Golden Hour para belleza épica.")
+            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle: Poder/Monstruos. High Angle: Debilidad. Dutch: Tensión/Terror.")
+            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="Chiaroscuro: Drama/Terror. Golden Hour: Épico/Bello. Neon: Futurista.")
         with c3:
-            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm = Épico/Abierto. 50mm = Ojo humano. 85mm = Retrato bonito. Macro = Detalles minúsculos.")
+            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm: Gran angular/Escala. 35mm: Cine clásico. 85mm: Retrato/Fondo borroso.")
             st.selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
 
     with t5:
-        st.markdown("### 🎙️ Audio & Lip Sync")
-        st.info("Sube el audio en la barra lateral o aquí.")
-        has_audio = st.checkbox("✅ Activar Lip-Sync")
+        st.subheader("🎹 Suno AI (Generador Musical)")
         
-        st.markdown("---")
-        st.subheader("🎹 Suno AI (Generador de Música)")
         sc1, sc2 = st.columns(2)
         with sc1:
             s_genre = st.text_input("Género (Ej: Cinematic Rock)")
             s_inst = st.toggle("🎻 Instrumental")
         with sc2:
-            s_mood = st.text_input("Mood (Ej: Epic, Sad)")
+            s_mood = st.text_input("Mood (Ej: Epic, Scary)")
+            s_dur = st.slider("Duración (Segundos)", 10, 300, 30, help="Define estructura. <30s = Jingle/Intro.")
+
+        s_lyrics = st.text_area("Letra / Tema", placeholder="Describe el tema o pega la letra...")
         
-        s_lyrics = st.text_area("Letra / Tema (si no es instrumental)")
+        # BOTÓN EXCLUSIVO DE SUNO (DENTRO DEL FORM PERO DIFERENCIADO POR LÓGICA)
+        submit_suno = st.form_submit_button("🎵 Generar Solo Música (Suno)")
         
-        # Botón INTERNO del form para generar Suno (solo muestra texto, no recarga todo)
-        if st.form_submit_button("🎵 Generar Prompt Musical (SunoOnly)"):
-            tags = []
-            if s_inst: tags.append("[Instrumental]")
-            if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
-            if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
-            st.info(f"Copia esto en Suno:\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics)}")
+        st.markdown("---")
+        st.caption("Configuración Video (Lip-Sync)")
+        has_audio = st.checkbox("✅ Activar Lip-Sync (Audio externo)")
 
     with t6:
-        st.header("📘 Manual de Usuario")
+        st.header("📘 Manual Maestro de Grok Studio")
         st.markdown("""
-        ### 🧠 Filosofía de la App
-        Esta herramienta funciona con dos "cerebros" que trabajan juntos:
-        
-        1.  **El Director (Botón 'Sugerir Look'):** * Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) antes de generar.
-            * *Úsalo cuando quieras ver y aprobar la configuración visual.*
-        
-        2.  **El Guionista (Modo Architect - Checkbox):**
-            * Trabaja en segundo plano al generar.
-            * Enriquece tu texto añadiendo detalles sensoriales (sudor, texturas, escombros) que Grok necesita para el realismo.
-            * *Úsalo siempre para resultados profesionales.*
+        ### 1. Filosofía de los Dos Cerebros
+        * **El Director (Botón 'Sugerir Look'):** Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) ANTES de generar.
+        * **El Guionista (Modo Architect):** Trabaja en SILENCIO al generar. Enriquece tu texto añadiendo detalles sensoriales.
 
-        ---
-        ### 🎥 Glosario de Cinematografía
-        
-        **Lentes (Ojos de la Cámara):**
-        * **16mm Wide Angle:** Expande el espacio. Ideal para paisajes épicos o monstruos gigantes.
-        * **35mm Prime:** El look clásico de cine y documental callejero.
-        * **50mm:** Lo más parecido al ojo humano. Natural y sin distorsión.
-        * **85mm / 100mm Macro:** Enfoca detalles pequeños (ojos, insectos, gotas). Fondo borroso (Bokeh).
-        * **Fisheye:** Distorsión curva extrema. Para escenas de locura o acción subjetiva (GoPro).
-
-        **Ángulos (Posición):**
-        * **Low Angle (Contrapicado):** Cámara abajo mirando arriba. Hace al sujeto poderoso o amenazante.
-        * **High Angle (Picado):** Cámara arriba mirando abajo. Hace al sujeto vulnerable.
-        * **Dutch Angle (Holandés):** Cámara inclinada. Genera tensión, miedo o desorientación.
-        
-        **Iluminación:**
-        * **Chiaroscuro / Low Key:** Muchas sombras, poco luz. Drama y misterio.
-        * **Golden Hour:** Luz solar baja y dorada. Estética y bonita.
-        * **Soft Overcast:** Luz suave sin sombras duras. Ideal para retratos tristes o neutros.
+        ### 2. Guía Técnica de Cinematografía
+        * **16mm Wide Angle:** Paisajes épicos, Monstruos Gigantes.
+        * **35mm Prime:** Cine clásico, documental.
+        * **50mm Lens:** Ojo humano. Sin distorsión.
+        * **85mm / 100mm Macro:** Detalles pequeños (ojos, gotas). Fondo borroso.
+        * **Low Angle:** Poder, Amenaza.
+        * **Dutch Angle:** Terror, Locura.
         """)
 
-    submitted = st.form_submit_button("✨ GENERAR PROMPT PRO")
+    # BOTÓN GLOBAL FUERA DE LAS PESTAÑAS (PERO DENTRO DEL FORM)
+    st.markdown("---")
+    submit_main = st.form_submit_button("✨ GENERAR PROMPT DE VÍDEO (PRO)")
 
 # --- 9. PROCESAMIENTO ---
-if submitted:
+# Lógica Diferenciada según el botón pulsado
+
+if submit_suno:
+    # Lógica exclusiva de Suno
+    if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
+    elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
+    else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
+    
+    tags = []
+    if s_inst: tags.append("[Instrumental]")
+    if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
+    if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
+    
+    st.info(f"📋 **Copia esto en Suno:**\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}\n**Structure Note:** {suno_struct}")
+
+elif submit_main:
+    # Lógica de Video Completa
     raw_action = current_text_input if current_text_input else st.session_state.get('act_input', "")
     eng_action = translate_to_english(raw_action)
     
     b = PromptBuilder()
     
-    # 1. Cabecera + ANCLAJE
+    # Cabecera + Anclaje
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
-    # Wardrobe Anchor
     ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
     b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
-    # 2. Narrativa
+    # Narrativa
     narrative = []
     if final_sub: narrative.append(final_sub)
     if final_ward: narrative.append(f"WEARING: {final_ward}")
@@ -409,7 +390,7 @@ if submitted:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # 3. Cine
+    # Cine
     w_shot = st.session_state.shot_select
     w_angle = st.session_state.angle_select
     w_lens = st.session_state.lens_select
