@@ -25,7 +25,6 @@ def apply_custom_styles(dark_mode=False):
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; border-left: 5px solid #FF4B4B !important; }}
         .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
         .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; color: #EEE; font-style: italic; }}
-        .help-box {{ font-size: 0.9rem; color: #888; margin-bottom: 10px; border-left: 3px solid #FF4B4B; padding-left: 10px; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -33,11 +32,9 @@ def apply_custom_styles(dark_mode=False):
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# Listas Visuales (VESTUARIO ACTUALIZADO PARA SER EXPLÍCITO)
+# LISTAS
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-
-# AQUÍ EL CAMBIO CLAVE: ROPA EXPLÍCITA
 DEMO_WARDROBE = [
     "✏️ Custom...", 
     "Short-sleeve grey t-shirt (Cotton texture)", 
@@ -55,7 +52,14 @@ LIST_LENSES = ["Neutral (Auto)", "16mm Wide Angle (Expansive)", "35mm Prime (Str
 DEMO_LIGHTING = ["Neutral (Auto)", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow", "Stark Space Sunlight"]
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "21:9 (Cinematic)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# Expansion Logic
+# AUDIO
+DEMO_AUDIO_MOOD = ["Neutral", "✏️ Custom...", "Intense Suspense", "Epic Orchestral", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
+DEMO_SFX = ["None", "✏️ Custom...", "Heavy breathing", "Footsteps", "Water splashing", "Explosion", "Laser blasts"]
+VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
+VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
+VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
+
+# GEM EXPANSION
 GEM_EXPANSION_PACK = {
     "run": "sweat and mud on a face contorted in panic, heavy motion blur",
     "correr": "sweat and mud on a face contorted in panic, heavy motion blur",
@@ -70,8 +74,8 @@ GEM_EXPANSION_PACK = {
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
     "🎤 Performance Musical": "Close-up on subject singing passionately...",
-    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic. Behind them, a colossal creature is charging, kicking up debris.",
-    "🐘 Transformación (Morphing)": "A small plastic toy elephant on a table begins to morph rapidly. The plastic texture cracks and transforms into realistic wrinkled grey skin and fur, growing in size into a real mammoth.",
+    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera...",
+    "🐘 Transformación (Morphing)": "A small plastic toy elephant on a table begins to morph rapidly...",
 }
 
 PHYSICS_LOGIC = {
@@ -178,7 +182,7 @@ def perform_reset():
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
-# --- 6. BUILDER CON ANCLAJE DE ROPA ---
+# --- 6. BUILDER ---
 class PromptBuilder:
     def __init__(self):
         self.parts = []
@@ -203,11 +207,6 @@ with st.sidebar:
     st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
-    with st.expander("❓ Guía Rápida"):
-        st.info("🧠 **Modo Architect:** Expande creativamente tu texto.")
-        st.info("👀 **Sugerir Look:** Mueve los selectores automáticamente.")
-        st.info("👕 **Ropa Segura:** Elige siempre ropa explícita (Manga corta, larga) para evitar cambios.")
-
     if st.button("🎲 Sugerir Look (Aplicar)"):
         perform_smart_update()
         st.toast("✨ Selectores actualizados.")
@@ -233,11 +232,11 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V68)")
+st.title("🎬 Grok Production Studio (V69)")
 
 with st.form("main_form"):
     
-    t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio"])
+    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio", "📘 Guía"])
 
     with t1:
         c1, c2 = st.columns(2)
@@ -254,7 +253,7 @@ with st.form("main_form"):
             else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
         with c2:
-            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
+            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True, help="Si marcas esto, la IA añadirá detalles creativos (sudor, texturas, emociones) automáticamente a tu prompt final.")
 
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
@@ -282,7 +281,7 @@ with st.form("main_form"):
             else: final_prop = ""
 
         with c2:
-            st.info("💡 Consejo: Selecciona manga corta/larga explícitamente.")
+            st.info("💡 Consejo: Elige manga corta/larga explícitamente para evitar que la IA la cambie.")
             ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
             if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
             else: final_ward = ward_sel
@@ -293,16 +292,16 @@ with st.form("main_form"):
         with c2: phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
     with t4:
-        st.info("💡 Usa 'Sugerir Look' en la barra lateral para auto-configurar.")
+        st.info("💡 Usa 'Sugerir Look' en la barra lateral para que la IA configure esto por ti según tu texto.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select")
+            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Define cuánto se ve del sujeto. 'Extreme Long' para paisajes, 'Close-Up' para emociones.")
             st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
         with c2:
-            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select")
-            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select")
+            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle = Poder/Amenaza. High Angle = Vulnerabilidad. Dutch Angle = Caos/Terror.")
+            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="La luz define el 'mood'. Chiaroscuro para drama, Golden Hour para belleza épica.")
         with c3:
-            st.selectbox("3. Lente", LIST_LENSES, key="lens_select")
+            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm = Épico/Abierto. 50mm = Ojo humano. 85mm = Retrato bonito. Macro = Detalles minúsculos.")
             st.selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
 
     with t5:
@@ -311,9 +310,58 @@ with st.form("main_form"):
         has_audio = st.checkbox("✅ Activar Lip-Sync")
         
         st.markdown("---")
-        suno_cols = st.columns(2)
-        with suno_cols[0]:
-            suno_inst = st.toggle("🎻 Instrumental", key="s_inst")
+        st.subheader("🎹 Suno AI (Generador de Música)")
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            s_genre = st.text_input("Género (Ej: Cinematic Rock)")
+            s_inst = st.toggle("🎻 Instrumental")
+        with sc2:
+            s_mood = st.text_input("Mood (Ej: Epic, Sad)")
+        
+        s_lyrics = st.text_area("Letra / Tema (si no es instrumental)")
+        
+        # Botón INTERNO del form para generar Suno (solo muestra texto, no recarga todo)
+        if st.form_submit_button("🎵 Generar Prompt Musical (SunoOnly)"):
+            tags = []
+            if s_inst: tags.append("[Instrumental]")
+            if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
+            if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
+            st.info(f"Copia esto en Suno:\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics)}")
+
+    with t6:
+        st.header("📘 Manual de Usuario")
+        st.markdown("""
+        ### 🧠 Filosofía de la App
+        Esta herramienta funciona con dos "cerebros" que trabajan juntos:
+        
+        1.  **El Director (Botón 'Sugerir Look'):** * Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) antes de generar.
+            * *Úsalo cuando quieras ver y aprobar la configuración visual.*
+        
+        2.  **El Guionista (Modo Architect - Checkbox):**
+            * Trabaja en segundo plano al generar.
+            * Enriquece tu texto añadiendo detalles sensoriales (sudor, texturas, escombros) que Grok necesita para el realismo.
+            * *Úsalo siempre para resultados profesionales.*
+
+        ---
+        ### 🎥 Glosario de Cinematografía
+        
+        **Lentes (Ojos de la Cámara):**
+        * **16mm Wide Angle:** Expande el espacio. Ideal para paisajes épicos o monstruos gigantes.
+        * **35mm Prime:** El look clásico de cine y documental callejero.
+        * **50mm:** Lo más parecido al ojo humano. Natural y sin distorsión.
+        * **85mm / 100mm Macro:** Enfoca detalles pequeños (ojos, insectos, gotas). Fondo borroso (Bokeh).
+        * **Fisheye:** Distorsión curva extrema. Para escenas de locura o acción subjetiva (GoPro).
+
+        **Ángulos (Posición):**
+        * **Low Angle (Contrapicado):** Cámara abajo mirando arriba. Hace al sujeto poderoso o amenazante.
+        * **High Angle (Picado):** Cámara arriba mirando abajo. Hace al sujeto vulnerable.
+        * **Dutch Angle (Holandés):** Cámara inclinada. Genera tensión, miedo o desorientación.
+        
+        **Iluminación:**
+        * **Chiaroscuro / Low Key:** Muchas sombras, poco luz. Drama y misterio.
+        * **Golden Hour:** Luz solar baja y dorada. Estética y bonita.
+        * **Soft Overcast:** Luz suave sin sombras duras. Ideal para retratos tristes o neutros.
+        """)
 
     submitted = st.form_submit_button("✨ GENERAR PROMPT PRO")
 
@@ -324,15 +372,13 @@ if submitted:
     
     b = PromptBuilder()
     
-    # 1. Cabecera + ANCLAJE DE VESTUARIO
+    # 1. Cabecera + ANCLAJE
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
-    # FRASE DE SEGURIDAD (WARDROBE ANCHOR)
-    consistency_phrase = "Maintain strict visual consistency with source."
-    if final_ward: 
-        consistency_phrase += f" ENSURE SUBJECT KEEPS WEARING: {final_ward} throughout the sequence."
-    b.add(consistency_phrase, "🔒 Anclaje de Vestuario Activado")
+    # Wardrobe Anchor
+    ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
+    b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
     # 2. Narrativa
     narrative = []
