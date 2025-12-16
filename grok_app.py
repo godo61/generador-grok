@@ -140,7 +140,6 @@ class GrokVideoPromptBuilder:
             prompt.append(f"Start Frame: '{self.image_filename}'.")
             if self.end_image_filename: prompt.append(f"End Frame: '{self.end_image_filename}'.")
             
-            # --- NOTA CRÍTICA PARA EL USUARIO EN EL PROMPT ---
             if self.audio_filename:
                 prompt.append(f"NOTE FOR GENERATOR: User will upload audio file '{self.audio_filename}' separately.")
                 prompt.append("ACTION: STRICT LIP-SYNC. Character's mouth must move in synchronization with the provided vocal track.")
@@ -170,7 +169,6 @@ class GrokVideoPromptBuilder:
             if enhance_mode:
                 extra_intensifiers = ""
                 if self.audio_filename:
-                    # Si hay audio, añadimos detalles de boca y expresión
                     extra_intensifiers = ", precise facial animation, expressive singing, rhythmic head movement, mouth shapes matching vocals"
                 
                 intensifiers = "extreme motion blur on limbs, sweat flying, panic-stricken facial expression, dynamic chaos, hyper-detailed textures" + extra_intensifiers
@@ -268,7 +266,7 @@ with st.sidebar:
 st.title("🎬 Grok Production Studio (VFX Edition)")
 enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Detalle visceral, blur, sudor...)", value=True)
 
-t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio & LipSync"])
+t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio & Voz"])
 
 # VARS INIT
 final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
@@ -335,24 +333,23 @@ with t4:
 with t5:
     st.markdown("### 🎙️ Estudio de Voz y Lip Sync")
     
-    # --- MENSAJE DE AVISO CRUCIAL ---
     st.markdown("""
     <div class="big-warning">
     ⚠️ <b>IMPORTANTE:</b> El audio que subas aquí es para activar el modo "Lip-Sync" en el prompt. 
-    <b>Recuerda subir el archivo de audio real a tu IA de vídeo (Kling, Hedra, Runway)</b> junto con la imagen y el prompt que genere esta app.
+    <b>Recuerda subir el archivo de audio real a tu IA de vídeo (Kling, Hedra, Runway)</b>.
     </div>
     """, unsafe_allow_html=True)
     
-    # UPLOADER
+    # UPLOADER DE AUDIO
     audio_file = st.file_uploader("📂 Subir Audio Referencia (MP3/WAV)", type=["mp3", "wav", "m4a"])
     if audio_file:
         st.session_state.uploaded_audio_name = audio_file.name
         st.audio(audio_file)
-        st.success(f"✅ Audio detectado. Se añadirán instrucciones de sincronización labial.")
+        st.success(f"✅ Audio detectado. Se activará Lip Sync.")
     else:
         st.session_state.uploaded_audio_name = None
 
-    dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz (Opcional)", value=False)
+    dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz", value=False)
     
     if dialogue_enabled:
         with st.container(border=True):
@@ -381,10 +378,10 @@ with t5:
             dialogue_text = translate_to_english(d_txt)
 
     st.markdown("---")
-    st.markdown("### 🎵 Diseño Sonoro (Música & SFX)")
+    st.markdown("### 🎵 Diseño Sonoro (Video)")
     c1, c2, c3 = st.columns(3)
     with c1: 
-        m_sel = st.selectbox("Música", DEMO_AUDIO_MOOD)
+        m_sel = st.selectbox("Música (Video)", DEMO_AUDIO_MOOD)
         mus_vid = translate_to_english(st.text_input("Mus. Custom", key="mc")) if "Custom" in m_sel else m_sel
     with c2:
         e_aud = st.selectbox("Ambiente", DEMO_AUDIO_ENV)
@@ -392,6 +389,43 @@ with t5:
     with c3:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
+
+    # --- SUNO AI SECTION (INSIDE T5 NOW) ---
+    st.markdown("---")
+    with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
+        st.info("Genera el prompt para crear la canción en Suno AI.")
+        
+        suno_col1, suno_col2 = st.columns(2)
+        with suno_col1:
+            suno_instrumental = st.toggle("🎻 Instrumental", value=False, key="suno_instr_toggle")
+            suno_duration = st.slider("Duración Estimada", 30, 240, 120, step=30, format="%d seg", key="suno_dur")
+            
+            if suno_duration <= 45: struct_suggestion = "[Intro] [Short Hook] [Outro]"
+            elif suno_duration <= 90: struct_suggestion = "[Intro] [Verse] [Chorus] [Outro]"
+            else: struct_suggestion = "[Intro] [Verse] [Chorus] [Bridge] [Chorus] [Outro]"
+                
+        with suno_col2:
+            suno_genre = st.text_input("Estilo / Género", placeholder="Cyberpunk, Lo-Fi, Epic...", key="suno_gen")
+            suno_mood = st.text_input("Mood / Atmósfera", placeholder="Dark, Tense...", key="suno_mood")
+
+        suno_lyrics = ""
+        if not suno_instrumental:
+            suno_lyrics = st.text_area("Letra / Tema:", placeholder="Escribe la letra o describe el tema...", key="suno_lyr")
+
+        if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
+            meta_tags = []
+            if suno_instrumental: meta_tags.append("[Instrumental]")
+            if suno_genre: meta_tags.append(f"[{translate_to_english(suno_genre)}]")
+            if suno_mood: meta_tags.append(f"[{translate_to_english(suno_mood)}]")
+            
+            final_suno = f"Style Prompts: {' '.join(meta_tags)}\n\n"
+            final_suno += f"Structure Suggestion:\n{struct_suggestion}\n\n"
+            
+            if not suno_instrumental and suno_lyrics:
+                eng_lyrics = translate_to_english(suno_lyrics)
+                final_suno += f"Lyrics / Topic:\n[Verse]\n{eng_lyrics}\n\n[Chorus]\n..."
+            
+            st.code(final_suno, language="text")
 
 # GENERAR
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
@@ -432,22 +466,3 @@ if st.session_state.generated_output:
     st.subheader("📝 Prompt Final")
     final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
     st.code(st.session_state.generated_output, language="text")
-
-# SUNO
-st.markdown("---")
-with st.expander("🎹 SUNO AI Audio Station", expanded=False):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        s_gen = st.selectbox("Género", ["Cinematic", "Cyberpunk", "Rock", "Lo-Fi", "Custom..."])
-        if s_gen == "Custom...": s_gen = st.text_input("Género Custom")
-    with c2:
-        s_str = st.selectbox("Estructura", ["Intro", "Loop", "Outro", "Build-up"])
-        s_bpm = st.slider("BPM", 60, 180, 120)
-    with c3:
-        s_moo = st.text_input("Mood", placeholder="Epic, Sad, Tense...")
-        s_ins = st.text_input("Instrumentos", placeholder="Violin, Synth...")
-
-    if st.button("🎵 GENERAR SUNO"):
-        mo = translate_to_english(s_moo)
-        ins = translate_to_english(s_ins)
-        st.code(f"[{s_str}] [{s_gen}] [{s_bpm} BPM]\n{mo} atmosphere. Featuring {ins}.", language="text")
