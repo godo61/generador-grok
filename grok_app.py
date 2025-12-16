@@ -28,7 +28,7 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATOS Y LISTAS INTELIGENTES ---
+# --- 3. DATOS Y LISTAS ---
 DEFAULT_CHARACTERS = {
     "TON (Base)": "a striking male figure (185cm), razor-sharp jawline, textured modern quiff hair, athletic build",
     "FREYA (Base)": "a statuesque female survivor, intense hazel eyes, wet skin texture, strong features",
@@ -41,7 +41,7 @@ DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
-# Cine Lists (GrokImagine Formula)
+# Cine Lists
 LIST_SHOT_TYPES = ["Neutral (Auto)", "✏️ Custom...", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Cowboy Shot (Knees Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)", "Over-The-Shoulder (Dialogue)"]
 LIST_ANGLES = ["Neutral (Auto)", "✏️ Custom...", "Low Angle (Heroic/Ominous)", "High Angle (Vulnerable)", "Dutch Angle (Chaos/Tension)", "Bird's Eye View (Top-Down)", "Drone Aerial View (Establishing)", "POV (First Person)"]
 LIST_LENSES = ["Neutral (Auto)", "✏️ Custom...", "16mm Wide Angle (Expansive)", "24mm Lens (Dynamic)", "35mm Prime (Street/Docu)", "50mm Lens (Natural Eye)", "85mm f/1.4 (Portrait Bokeh)", "100mm Macro (Micro Detail)", "Canon L-Series (Sharp)", "Vintage Anamorphic (Cinematic)", "Fisheye (Distorted)"]
@@ -56,11 +56,11 @@ VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "C
 VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
 VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
 
-# Diccionario de "Sabor" (Flavor Text) para enriquecer prompts
+# FLAVOR TEXT (DETALLES RICOS)
 FLAVOR_TEXT = {
     "monster": "massive scale, earth-shaking footsteps, debris flying, terrifying presence, ancient texture",
     "chase": "desperate expression, wind resistance, extreme motion blur, chaotic camera movement, adrenaline fueled",
-    "transform": "surreal morphing visuals, reality distortion, glowing energy, anatomical shifting, intricate details",
+    "transform": "surreal morphing visuals, reality distortion, anatomical shifting from plastic to organic skin, glowing energy, intricate details",
     "scifi": "bioluminescent details, worn metal textures, holographic interfaces, futuristic atmosphere",
     "nature": "organic textures, volumetric fog, particle systems, hyper-detailed flora, weather effects"
 }
@@ -85,7 +85,6 @@ PHYSICS_LOGIC = {
 }
 
 # --- 4. GESTIÓN DE ESTADO ---
-# Inicializar variables
 init_vars = {
     'generated_output': "",
     'generated_explanation': "",
@@ -112,10 +111,17 @@ for k, v in init_vars.items():
 
 # --- 5. FUNCIONES LÓGICAS ---
 def translate_to_english(text):
-    if not text or not text.strip(): return ""
+    """Traducción robusta con fallback"""
+    if not text or not str(text).strip(): return ""
+    
+    # 1. Intentar traducción
     if TRANSLATOR_AVAILABLE:
-        try: return GoogleTranslator(source='auto', target='en').translate(str(text))
-        except: return str(text)
+        try:
+            return GoogleTranslator(source='auto', target='en').translate(str(text))
+        except Exception as e:
+            return str(text) # Fallback al original si falla la API
+            
+    # 2. Si no hay librería, devolver original
     return str(text)
 
 def detect_and_set_ar(image_file):
@@ -136,13 +142,14 @@ def detect_and_set_ar(image_file):
 def apply_smart_look(action_text, env_text):
     txt = (action_text + " " + env_text).lower()
     
-    # Pool Seguro
+    # Pool Seguro (Excluyendo extremos)
     safe_shots = [s for s in LIST_SHOT_TYPES if "Macro" not in s and "Extreme Close" not in s and "Neutral" not in s]
     safe_angles = [a for a in LIST_ANGLES if "Neutral" not in a]
     safe_lenses = [l for l in LIST_LENSES if "Macro" not in l and "Fisheye" not in l and "Neutral" not in l]
     safe_lits = [l for l in DEMO_LIGHTING if "Neutral" not in l]
     safe_styles = [s for s in DEMO_STYLES if "Neutral" not in s]
 
+    # Defaults
     s_shot = random.choice(safe_shots)
     s_angle = random.choice(safe_angles)
     s_lens = random.choice(safe_lenses)
@@ -163,14 +170,10 @@ def apply_smart_look(action_text, env_text):
         s_lens = "24mm Lens (Dynamic)"
         s_sty = "Gritty Documentary Footage"
 
-    elif any(x in txt for x in ["terror", "fear", "panic", "miedo", "scream"]):
-        s_angle = "Dutch Angle (Chaos/Tension)"
-        s_lit = "Dramatic Low-Key (Chiaroscuro)"
-        s_shot = "Close-Up (Face Focus)" 
-
-    elif any(x in txt for x in ["transform", "morph", "cambia"]):
-        s_lens = "50mm Lens (Natural Eye)"
+    elif any(x in txt for x in ["transform", "morph", "cambia", "plastic", "plástico"]):
+        s_lens = "35mm Prime (Street/Docu)" # Mejor para ver detalles medios
         s_sty = "Hyper-realistic VFX Render (Unreal 5)"
+        s_lit = "Dramatic Low-Key (Chiaroscuro)" # Resalta el cambio de forma
 
     # Aplicar
     st.session_state['shot_select'] = s_shot
@@ -180,7 +183,6 @@ def apply_smart_look(action_text, env_text):
     st.session_state['sty_select'] = s_sty
 
 def perform_reset():
-    # BORRADO EXPLÍCITO
     st.session_state['act_input'] = ""
     st.session_state['char_select'] = "-- Seleccionar Protagonista --"
     st.session_state['shot_select'] = LIST_SHOT_TYPES[0]
@@ -190,7 +192,7 @@ def perform_reset():
     st.session_state['sty_select'] = DEMO_STYLES[0]
     st.session_state['env_select'] = DEMO_ENVIRONMENTS[0]
     st.session_state['phy_select'] = "Neutral / Estudio"
-    st.session_state['uploader_key'] += 1
+    st.session_state['uploader_key'] += 1 
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
@@ -206,15 +208,21 @@ class GrokVideoPromptBuilder:
             if explain: self.explanation.append(explain)
     
     def get_flavor(self, text):
-        """Inyecta detalles viscerales si detecta keywords"""
         flavor = []
         txt = text.lower()
+        # PRIORIDAD 1: Transformación (Morphing)
+        if "transform" in txt or "morph" in txt or "plástico" in txt or "plastic" in txt:
+            flavor.append(FLAVOR_TEXT["transform"])
+            self.explanation.append("🧬 Detectada Transformación: Añadidos detalles de morphing y distorsión.")
+            
+        # PRIORIDAD 2: Monstruos
         if "mamut" in txt or "monster" in txt or "beast" in txt or "elefante" in txt:
             flavor.append(FLAVOR_TEXT["monster"])
+            
+        # PRIORIDAD 3: Persecución
         if "run" in txt or "chase" in txt or "persecución" in txt:
             flavor.append(FLAVOR_TEXT["chase"])
-        if "transform" in txt or "morph" in txt:
-            flavor.append(FLAVOR_TEXT["transform"])
+            
         return ", ".join(flavor)
 
     def get_prompt(self): return "\n\n".join(self.parts)
@@ -255,7 +263,7 @@ enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Modo Auto-Excellence)", value
 
 t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio & Voz"])
 
-final_sub, final_act = "", ""
+final_sub = ""
 
 with t1:
     c1, c2 = st.columns(2)
@@ -274,14 +282,16 @@ with t1:
         else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
     with c2:
-        tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()))
-        if tpl != "Seleccionar...":
-            st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
+        # SEPARACIÓN DE LOGICA: El selector no sobrescribe automáticamente
+        tpl = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()), key="tpl_select")
+        if st.button("📥 Aplicar Plantilla"):
+            if tpl != "Seleccionar...":
+                st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
+                st.rerun()
 
     st.markdown("##### 📜 Descripción de la Acción")
-    # PERSISTENCIA: El text area lee del estado, pero no se borra al generar
-    act_val = st.text_area("Describe la escena:", height=100, key="act_input")
-    final_act = translate_to_english(act_val)
+    # PERSISTENCIA ASEGURADA: Solo se actualiza si el usuario escribe
+    st.text_area("Describe la escena:", height=100, key="act_input")
 
 with t2:
     c1, c2 = st.columns(2)
@@ -351,6 +361,9 @@ with t5:
             dc1, dc2 = st.columns(2)
             with dc1:
                 v_char_sel = st.selectbox("Personaje", ["Protagonista", "Narrador"] + list(st.session_state.characters.keys()))
+                if "Protagonista" in v_char_sel: voice_char = "The Main Character"
+                elif "Narrador" in v_char_sel: voice_char = "Narrator"
+                else: voice_char = v_char_sel
                 v_type = st.selectbox("Tipo", VOICE_TYPES)
             with dc2:
                 v_acc = st.selectbox("Acento", VOICE_ACCENTS)
@@ -369,6 +382,10 @@ with t5:
 
 # --- 9. GENERACIÓN DEL PROMPT ---
 if st.button("✨ GENERAR PROMPT PRO", type="primary"):
+    # PASO 1: LEER TEXTO FRESCO DEL ESTADO (CRÍTICO)
+    raw_action = st.session_state.get('act_input', "")
+    translated_action = translate_to_english(raw_action)
+    
     b = GrokVideoPromptBuilder()
     
     # 1. Cabecera
@@ -383,26 +400,33 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     if "Custom" not in final_ward and final_ward: narrative.append(f"WEARING: {final_ward}")
     if final_prop: narrative.append(f"HOLDING: {final_prop}")
     
-    if final_act:
+    # AQUÍ ESTÁ LA MAGIA DEL MORPHING
+    if translated_action:
         if enhance_mode:
-            # INYECTAR "SABOR" (FLAVOR TEXT)
-            flavor = b.get_flavor(final_act)
+            # Detectar Flavor Específico (Morphing/Monster/Etc)
+            flavor = b.get_flavor(translated_action)
             base_ints = "extreme motion blur, dynamic chaos, hyper-detailed textures"
             if aud_file: base_ints += ", expressive singing"
             
-            # Combinar Flavor específico con base general
             full_intensifiers = f"{flavor}, {base_ints}" if flavor else base_ints
             
-            b.add_section(f"VISCERAL ACTION SEQUENCE: {final_act}. FEATURING: {full_intensifiers}.", "🔥 VFX + Flavor")
+            # Si hay transformación, usamos cabecera especial
+            if "transform" in flavor:
+                b.add_section(f"VISUAL EFFECTS SEQUENCE (MORPHING): {translated_action}. FEATURING: {full_intensifiers}.", "🧬 Morphing Mode Detected")
+            else:
+                b.add_section(f"VISCERAL ACTION SEQUENCE: {translated_action}. FEATURING: {full_intensifiers}.", "🔥 VFX Mode")
         else:
-            b.add_section(f"ACTION: {final_act}.")
+            b.add_section(f"ACTION: {translated_action}.")
+    else:
+        # Fallback si no hay texto
+        if enhance_mode: b.add_section("ACTION: Cinematic idle motion, breathing, slight head turn.", "⚠️ No action text provided")
     
     if "Custom" not in final_env and final_env: b.add_section(f"ENVIRONMENT: {final_env}.")
     elif enhance_mode and not final_env: b.add_section("ENVIRONMENT: Cinematic atmospheric background.")
     
     b.add_section("\n".join(narrative))
     
-    # 3. Cine Fraseada
+    # 3. Cine
     lit = st.session_state.lit_select
     lit = "" if "Neutral" in lit else lit.split('(')[0]
     shot = st.session_state.shot_select
@@ -412,7 +436,6 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     lens = st.session_state.lens_select
     lens = "" if "Neutral" in lens else lens.split('(')[0]
     
-    # Construcción gramatical limpia
     cine_parts = []
     if lit: cine_parts.append(lit)
     if shot or angle or lens:
@@ -429,6 +452,8 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     
     # 4. Audio & Params
     if mus_vid and "Neutral" not in mus_vid: b.add_section(f"SOUND DESIGN: {mus_vid}")
+    if dialogue_enabled and dialogue_text:
+        b.add_section(f"DIALOGUE: {voice_char} ({v_type}, {v_emo}) says: \"{dialogue_text}\"")
     
     ar_val = st.session_state.ar_select.split('(')[0].strip()
     b.add_section(f"--ar {ar_val}")
@@ -443,3 +468,4 @@ if st.session_state.generated_output:
         st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
     st.code(st.session_state.generated_output, language="text")
+    st.caption("👆 Pulsa el icono de 'Copiar' para llevarlo a Grok.")
