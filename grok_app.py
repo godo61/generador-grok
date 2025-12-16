@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+import random
 
 # --- GESTIÓN DE DEPENDENCIAS ---
 try:
@@ -9,7 +10,7 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎥")
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
 # --- ESTILOS CSS ---
 def apply_custom_styles(dark_mode=False):
@@ -25,8 +26,8 @@ def apply_custom_styles(dark_mode=False):
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; }}
         [data-testid="sttoggle"] span {{ font-weight: bold; color: #FF4B4B; }}
         .stTextArea textarea {{ border-left: 5px solid #FF4B4B !important; }}
-        /* Aviso importante */
-        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
+        /* Estilo para la explicación de estrategia */
+        .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; font-style: italic; color: #DDDDDD; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -41,14 +42,23 @@ DEFAULT_PROPS = {
     "Linterna Táctica": "a high-lumen tactical flashlight"
 }
 
-# --- MEMORIA ---
+# --- MEMORIA & STATE ---
 if 'history' not in st.session_state: st.session_state.history = []
 if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_image_name = None
 if 'uploaded_audio_name' not in st.session_state: st.session_state.uploaded_audio_name = None
 if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
+if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = "" # NUEVO
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
+
+# Variables para Randomizer (Inicializar si no existen)
+if 'rnd_cam' not in st.session_state: st.session_state.rnd_cam = 0
+if 'rnd_lit' not in st.session_state: st.session_state.rnd_lit = 0
+if 'rnd_sty' not in st.session_state: st.session_state.rnd_sty = 0
+if 'rnd_lens' not in st.session_state: st.session_state.rnd_lens = 0
+if 'rnd_angle' not in st.session_state: st.session_state.rnd_angle = 0
+if 'rnd_shot' not in st.session_state: st.session_state.rnd_shot = 0
 
 # --- FUNCIONES ---
 def translate_to_english(text):
@@ -58,73 +68,29 @@ def translate_to_english(text):
         except: return str(text)
     return str(text)
 
-# --- LISTAS GENERALES ---
-DEMO_STYLES = [
-    "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", 
-    "National Geographic Wildlife Style", "Gritty Documentary Footage", 
-    "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"
-]
-DEMO_ENVIRONMENTS = [
-    "✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", 
-    "🌌 Deep Space (Nebula Background)", "🚀 ISS Space Station Interior", 
-    "🌊 Underwater Coral Reef", "❄️ Arctic Tundra (Snowstorm)", 
-    "🏙️ Cyberpunk City (Neon Rain)", "🌲 Mystic Forest (Fog)"
-]
+# --- LISTAS ---
+DEMO_STYLES = ["Neutral (Grok Default)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
+DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula Background)", "🚀 ISS Space Station Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra (Snowstorm)", "🏙️ Cyberpunk City (Neon Rain)", "🌲 Mystic Forest (Fog)"]
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
-DEMO_LIGHTING = [
-    "✏️ Custom...", "Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting (Chiaroscuro)", 
-    "Soft overcast diffusion", "Neon City Glow (Blue/Pink)", "Stark Space Sunlight (No Fill)", 
-    "Underwater Caustics", "Bioluminescence"
-]
+DEMO_LIGHTING = ["Neutral (Auto-Enhance)", "✏️ Custom...", "Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting (Chiaroscuro)", "Soft overcast diffusion", "Neon City Glow (Blue/Pink)", "Stark Space Sunlight (No Fill)", "Underwater Caustics", "Bioluminescence"]
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# --- NUEVAS LISTAS DE CINEMATOGRAFÍA PRO (V48) ---
-LIST_SHOT_TYPES = [
-    "Neutral (Auto)", "✏️ Custom...",
-    "Extreme Long Shot (Gran Plano General)", 
-    "Long Shot (Plano General)", 
-    "Medium Shot (Plano Medio)", 
-    "Cowboy Shot (Plano Americano)",
-    "Close-Up (Primer Plano)", 
-    "Extreme Close-Up (Macro Detalle)", 
-    "Over-The-Shoulder (Sobre el Hombro)"
-]
-
-LIST_ANGLES = [
-    "Neutral (Eye Level)", "✏️ Custom...",
-    "Low Angle (Contrapicado / Heroic)", 
-    "High Angle (Picado / Vulnerable)", 
-    "Dutch Angle (Plano Holandés / Tilted)", 
-    "Bird's Eye View (Vista de Pájaro / Top-down)", 
-    "Worm's Eye View (Vista de Gusano)",
-    "Drone Aerial View (FPV)",
-    "POV (Point of View)"
-]
-
-LIST_LENSES = [
-    "Neutral (Standard)", "✏️ Custom...",
-    "16mm Wide Angle (Landscape/Angular)", 
-    "35mm Prime (Cinema/Street Look)", 
-    "50mm Lens (Human Eye)", 
-    "85mm f/1.4 (Portrait/Bokeh Intenso)", 
-    "100mm Macro (Micro Details)",
-    "Canon L-Series Style (Pro Sharpness)",
-    "Vintage Anamorphic (Lens Flares)",
-    "Fisheye Lens (Distorted)"
-]
+# CINE LISTS
+LIST_SHOT_TYPES = ["Neutral (Auto-Compose)", "✏️ Custom...", "Extreme Long Shot (Gran Plano General)", "Long Shot (Plano General)", "Medium Shot (Plano Medio)", "Cowboy Shot (Plano Americano)", "Close-Up (Primer Plano)", "Extreme Close-Up (Macro Detalle)", "Over-The-Shoulder (Sobre el Hombro)"]
+LIST_ANGLES = ["Neutral (Eye Level)", "✏️ Custom...", "Low Angle (Contrapicado / Heroic)", "High Angle (Picado / Vulnerable)", "Dutch Angle (Plano Holandés / Tilted)", "Bird's Eye View (Vista de Pájaro)", "Drone Aerial View (FPV)", "POV (Point of View)"]
+LIST_LENSES = ["Neutral (Standard)", "✏️ Custom...", "16mm Wide Angle (Landscape/Angular)", "35mm Prime (Cinema/Street Look)", "50mm Lens (Human Eye)", "85mm f/1.4 (Portrait/Bokeh Intenso)", "100mm Macro (Micro Details)", "Canon L-Series Style (Pro Sharpness)", "Vintage Anamorphic (Lens Flares)", "Fisheye Lens (Distorted)"]
 
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
+DEMO_AUDIO_MOOD = ["Neutral (Silent)", "✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
+DEMO_AUDIO_ENV = ["Neutral (Auto)", "✏️ Custom...", "No Background", "Mars Wind", "River Rapids Roar", "Space Station Hum", "City Traffic Rain", "Jungle Sounds"]
+DEMO_SFX_COMMON = ["None", "✏️ Custom...", "Heavy breathing", "Footsteps on gravel", "Water splashing", "Explosion", "Laser blasts"]
 
-# --- LISTAS AUDIO & DIÁLOGO ---
-DEMO_AUDIO_MOOD = ["✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
-DEMO_AUDIO_ENV = ["✏️ Custom...", "No Background", "Mars Wind", "River Rapids Roar", "Space Station Hum", "City Traffic Rain", "Jungle Sounds"]
-DEMO_SFX_COMMON = ["✏️ Custom...", "None", "Heavy breathing", "Footsteps on gravel", "Water splashing", "Explosion", "Laser blasts"]
+# VOZ
+VOICE_TYPES = ["Neutral", "✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
+VOICE_ACCENTS = ["Neutral", "✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent"]
+VOICE_EMOTIONS = ["Neutral", "✏️ Custom...", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
 
-VOICE_TYPES = ["✏️ Custom...", "Male (Deep)", "Female (Soft)", "Child", "Elderly", "Robot/AI", "Monster/Growl"]
-VOICE_ACCENTS = ["✏️ Custom...", "American (Standard)", "British (RP)", "Spanish (Castilian)", "Mexican", "French Accent", "Russian Accent", "Neutral"]
-VOICE_EMOTIONS = ["✏️ Custom...", "Neutral", "Angry / Shouting", "Sad / Crying", "Whispering / Secretive", "Happy / Excited", "Sarcastic", "Terrified", "Flirty", "Passionate Singing"]
-
-# --- FÍSICA ---
+# FÍSICA
 PHYSICS_LOGIC = {
     "Neutral / Estudio": [],
     "🌌 Espacio (Gravedad Cero)": ["Zero-G floating", "No air resistance", "Stark lighting", "Vacuum silence", "Floating debris"],
@@ -142,7 +108,7 @@ NARRATIVE_TEMPLATES = {
     "🧟 Transformación Súbita": "At second 0, the scene is static. Suddenly, the inanimate object behind the subject rapidly transforms into a massive, living threat. The subject reacts with sheer terror.",
 }
 
-# --- BUILDER ---
+# --- BUILDER (CON CEREBRO EXPLICATIVO) ---
 class GrokVideoPromptBuilder:
     def __init__(self):
         self.parts = {}
@@ -150,6 +116,7 @@ class GrokVideoPromptBuilder:
         self.image_filename = ""
         self.end_image_filename = None
         self.audio_filename = None
+        self.explanation = [] # Lista para guardar los "Porqués"
 
     def set_field(self, key, value):
         self.parts[key] = str(value).strip() if isinstance(value, str) else value
@@ -165,114 +132,115 @@ class GrokVideoPromptBuilder:
     def build(self) -> str:
         p = self.parts
         prompt = []
+        self.explanation = []
 
-        # 1. CABECERA
+        # 1. CABECERA & AUDIO
         if self.is_img2video:
             prompt.append(f"Start Frame: '{self.image_filename}'.")
-            if self.end_image_filename: prompt.append(f"End Frame: '{self.end_image_filename}'.")
+            self.explanation.append("✅ **Image-to-Video:** Usando referencia visual para máxima consistencia.")
+            
+            if self.end_image_filename: 
+                prompt.append(f"End Frame: '{self.end_image_filename}'.")
+                self.explanation.append("✅ **Guide Frames:** Usando inicio y final para controlar la transformación.")
             
             if self.audio_filename:
-                prompt.append(f"NOTE FOR GENERATOR: User will upload audio file '{self.audio_filename}' separately.")
-                prompt.append("ACTION: STRICT LIP-SYNC. Character's mouth must move in synchronization with the provided vocal track.")
+                prompt.append(f"AUDIO SOURCE: '{self.audio_filename}' (User Upload).")
+                prompt.append("ACTION: STRICT LIP-SYNC. Mouth movements must match vocals.")
+                self.explanation.append("🗣️ **Lip Sync:** Audio detectado. Se han añadido instrucciones estrictas de sincronización labial.")
             
-            prompt.append("Maintain strict visual consistency with references.")
+            prompt.append("Maintain strict visual consistency.")
 
-        # 2. NARRATIVA
+        # 2. NARRATIVA INTELIGENTE
         narrative_block = []
         subject = p.get('subject', '')
         wardrobe = p.get('wardrobe_custom') or p.get('wardrobe', '')
         if "Custom" in wardrobe: wardrobe = ""
-        props = p.get('props_custom') or p.get('props', '')
-        if "Custom" in props or "None" in props: props = ""
         
-        subject_details = []
-        if subject: subject_details.append(subject)
-        if wardrobe: subject_details.append(f"wearing {wardrobe}")
-        if props: subject_details.append(f"holding {props}")
+        # Sujeto
+        if subject:
+            sub_str = f"MAIN SUBJECT: {subject}"
+            if wardrobe: sub_str += f" wearing {wardrobe}"
+            narrative_block.append(sub_str + ".")
         
-        if subject_details:
-            narrative_block.append(f"MAIN SUBJECT: {', '.join(subject_details)}.")
-
+        # Acción & Enhance Mode
         action_raw = p.get('action', '')
         enhance_mode = p.get('enhance_mode', False)
         
         if action_raw:
             if enhance_mode:
-                extra_intensifiers = ""
-                if self.audio_filename:
-                    extra_intensifiers = ", precise facial animation, expressive singing, rhythmic head movement, mouth shapes matching vocals"
-                
-                intensifiers = "extreme motion blur on limbs, sweat flying, panic-stricken facial expression, dynamic chaos, hyper-detailed textures" + extra_intensifiers
+                intensifiers = "extreme motion blur on limbs, sweat flying, panic-stricken facial expression, dynamic chaos, hyper-detailed textures"
+                if self.audio_filename: intensifiers += ", precise singing expression"
                 narrative_block.append(f"VISCERAL ACTION SEQUENCE: {action_raw}. FEATURING: {intensifiers}.")
+                self.explanation.append("🔥 **VFX Enhancer:** Se ha inyectado vocabulario de 'Acción Visceral' (sudor, blur, caos) para evitar un resultado estático.")
             else:
                 narrative_block.append(f"ACTION: {action_raw}.")
+                self.explanation.append("ℹ️ **Modo Estándar:** Usando la descripción de acción literal.")
 
+        # Entorno
         env = p.get('env_custom') or p.get('env', '')
         if "Custom" in env: env = ""
-        if env: narrative_block.append(f"ENVIRONMENT: {env}.")
+        if env: 
+            narrative_block.append(f"ENVIRONMENT: {env}.")
+        else:
+            # AUTO-FILL INTELIGENTE
+            if enhance_mode: 
+                narrative_block.append("ENVIRONMENT: Detailed, cinematic background appropriate for the context.")
+                self.explanation.append("🤖 **Auto-Entorno:** No seleccionaste entorno, así que le pedí a Grok que genere uno cinemático acorde al sujeto.")
 
         prompt.append("\n".join(narrative_block))
 
-        # 3. FÍSICA Y ATMÓSFERA
+        # 3. FÍSICA
         atmosphere = []
+        # Luz Inteligente
         lit_val = p.get('light_custom') or p.get('light', '')
-        if "Custom" in lit_val: lit_val = ""
-        if lit_val: atmosphere.append(f"LIGHTING: {lit_val}")
+        if "Custom" in lit_val or "Neutral" in lit_val: lit_val = ""
         
+        if lit_val:
+            atmosphere.append(f"LIGHTING: {lit_val}")
+        elif enhance_mode:
+            atmosphere.append("LIGHTING: Dynamic lighting matching the emotional tone of the scene")
+            self.explanation.append("💡 **Auto-Luz:** Le he pedido a Grok que decida la mejor iluminación para esta emoción.")
+
+        # Simulación Física
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
             dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
-            if dets: atmosphere.append(f"PHYSICS & ATMOSPHERE: {', '.join(dets)}")
+            if dets: 
+                atmosphere.append(f"PHYSICS & ATMOSPHERE: {', '.join(dets)}")
+                self.explanation.append(f"⚛️ **Física:** Activada simulación de {p['physics_medium'].split(' ')[0]}.")
             
         if atmosphere: prompt.append(". ".join(atmosphere) + ".")
 
-        # 4. DIÁLOGO (CONTEXTO)
-        if p.get('dialogue_enabled'):
-            dialogue_text = p.get('dialogue_text', '')
-            if self.audio_filename:
-                 prompt.append(f"PERFORMANCE: Character is singing/speaking the uploaded audio track.")
-            
-            if dialogue_text:
-                voice_char = p.get('voice_char', 'Character')
-                v_emotion = p.get('voice_emotion', '')
-                if "Custom" in v_emotion: v_emotion = ""
-                prompt.append(f"SCRIPT CONTEXT: {voice_char} says: \"{dialogue_text}\" with {v_emotion} tone.")
-
-        # 5. CINE Y LENTES (NUEVA LOGICA V48)
+        # 4. CINE (PRO)
         cinema = []
         
-        # Shot Type
+        # Procesar selecciones o dejar libertad
         shot_t = p.get('shot_type', '')
-        if "Custom" in shot_t: shot_t = ""
-        elif "Neutral" in shot_t: shot_t = ""
-        if shot_t: cinema.append(shot_t.split('(')[0].strip())
+        if "Custom" in shot_t or "Neutral" in shot_t: shot_t = ""
         
-        # Angle
         angle_t = p.get('angle', '')
-        if "Custom" in angle_t: angle_t = ""
-        elif "Neutral" in angle_t: angle_t = ""
-        if angle_t: cinema.append(angle_t.split('(')[0].strip())
+        if "Custom" in angle_t or "Neutral" in angle_t: angle_t = ""
         
-        # Lens
         lens_t = p.get('lens', '')
-        if "Custom" in lens_t: lens_t = ""
-        elif "Neutral" in lens_t: lens_t = ""
+        if "Custom" in lens_t or "Neutral" in lens_t: lens_t = ""
+        
+        if shot_t: cinema.append(shot_t.split('(')[0].strip())
+        if angle_t: cinema.append(angle_t.split('(')[0].strip())
         if lens_t: cinema.append(f"Shot on {lens_t.split('(')[0].strip()}")
         
-        # Style
-        if p.get('style'): cinema.append(f"AESTHETIC: {p['style']}")
+        # Estilo
+        sty = p.get('style', '')
+        if "Neutral" not in sty: cinema.append(f"AESTHETIC: {sty}")
         
-        if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
+        if cinema: 
+            prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
+        elif enhance_mode:
+            prompt.append("CINEMATOGRAPHY: Professional cinematic composition, high production value.")
+            self.explanation.append("🎥 **Auto-Cine:** No elegiste cámara, así que solicité 'Alto Valor de Producción' genérico.")
 
-        # 6. AUDIO Y PARÁMETROS
+        # 5. AUDIO
         audio_parts = []
         m_val = p.get('audio_mood_custom') or p.get('audio_mood')
-        if m_val and "Custom" not in m_val: audio_parts.append(f"Music: {m_val}")
-        
-        e_val = p.get('audio_env_custom') or p.get('audio_env')
-        if e_val and "Custom" not in e_val: audio_parts.append(f"Ambience: {e_val}")
-
-        s_val = p.get('audio_sfx_custom') or p.get('audio_sfx')
-        if s_val and "Custom" not in s_val and "None" not in s_val: audio_parts.append(f"SFX: {s_val.split('(')[0].strip()}")
+        if m_val and "Custom" not in m_val and "Neutral" not in m_val: audio_parts.append(f"Music: {m_val}")
         
         if audio_parts: prompt.append(f"SOUND DESIGN: {'. '.join(audio_parts)}.")
 
@@ -286,9 +254,23 @@ with st.sidebar:
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
     apply_custom_styles(is_dark)
     
+    # Randomizer Logic
+    if st.button("🎲 Sugerir Look (Random)"):
+        # Actualizamos session states con índices aleatorios
+        # Nota: Los índices deben estar dentro del rango de las listas (excluyendo los primeros 2 elementos de 'Neutral' y 'Custom')
+        import random
+        st.session_state.rnd_cam = random.randint(2, len(DEMO_CAMERAS)-1)
+        st.session_state.rnd_lit = random.randint(2, len(DEMO_LIGHTING)-1)
+        st.session_state.rnd_sty = random.randint(1, len(DEMO_STYLES)-1)
+        st.session_state.rnd_shot = random.randint(2, len(LIST_SHOT_TYPES)-1)
+        st.session_state.rnd_angle = random.randint(2, len(LIST_ANGLES)-1)
+        st.session_state.rnd_lens = random.randint(2, len(LIST_LENSES)-1)
+        st.rerun()
+
     if st.button("🔄 Restaurar Fábrica"):
         st.session_state.characters = DEFAULT_CHARACTERS.copy()
         st.session_state.custom_props = DEFAULT_PROPS.copy()
+        st.session_state.rnd_cam = 0 # Reset
         st.rerun()
     
     st.header("🧬 Activos")
@@ -299,7 +281,7 @@ with st.sidebar:
         if st.button("Guardar Actor"):
             if c_n and c_d:
                 st.session_state.characters[c_n] = translate_to_english(c_d)
-                st.success(f"Guardado: {c_n}")
+                st.success("Guardado")
                 st.rerun()
     with to:
         o_n = st.text_input("Nombre Objeto")
@@ -307,7 +289,7 @@ with st.sidebar:
         if st.button("Guardar Objeto"):
             if o_n and o_d:
                 st.session_state.custom_props[o_n] = translate_to_english(o_d)
-                st.success(f"Guardado: {o_n}")
+                st.success("Guardado")
                 st.rerun()
 
     st.markdown("---")
@@ -324,8 +306,8 @@ with st.sidebar:
     else: st.session_state.uploaded_end_frame_name = None
 
 # --- PANEL PRINCIPAL ---
-st.title("🎬 Grok Production Studio (VFX Edition)")
-enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Detalle visceral, blur, sudor...)", value=True)
+st.title("🎬 Grok Production Studio (Smart Assistant)")
+enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Modo Auto-Excellence)", value=True, help="Si activas esto, rellenaré los huecos vacíos con opciones dramáticas.")
 
 t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio & Voz"])
 
@@ -350,7 +332,7 @@ with t1:
         tpl_txt = NARRATIVE_TEMPLATES[tpl]
 
     st.markdown("##### 📜 Descripción de la Acción")
-    act_val = st.text_area("Describe la escena (Inglés o Español):", value=tpl_txt, height=100, placeholder="Ej: El personaje canta con pasión...")
+    act_val = st.text_area("Describe la escena (Inglés o Español):", value=tpl_txt, height=100, placeholder="Ej: El personaje camina con determinación...")
     final_act = translate_to_english(act_val)
 
 with t2:
@@ -378,11 +360,12 @@ with t3:
     with c2: phy_det = st.multiselect("Detalles Activos", PHYSICS_LOGIC[phy_med])
 
 with t4:
-    # --- CINEMATOGRAFÍA PRO (V48) ---
+    # --- CINEMATOGRAFÍA PRO (CON RANDOMIZER) ---
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**1. Encuadre**")
-        shot_sel = st.selectbox("Tipo de Plano", LIST_SHOT_TYPES)
+        # Usamos el session_state.rnd_shot como index
+        shot_sel = st.selectbox("Tipo de Plano", LIST_SHOT_TYPES, index=st.session_state.rnd_shot)
         if "Custom" in shot_sel: final_shot = translate_to_english(st.text_input("Plano Custom", key="cus_shot"))
         else: final_shot = shot_sel
         
@@ -391,31 +374,31 @@ with t4:
 
     with c2:
         st.markdown("**2. Ángulo**")
-        angle_sel = st.selectbox("Posición de Cámara", LIST_ANGLES)
+        angle_sel = st.selectbox("Posición de Cámara", LIST_ANGLES, index=st.session_state.rnd_angle)
         if "Custom" in angle_sel: final_angle = translate_to_english(st.text_input("Ángulo Custom", key="cus_ang"))
         else: final_angle = angle_sel
         
         st.markdown("**5. Iluminación**")
-        lit_sel = st.selectbox("Tipo de Luz", DEMO_LIGHTING)
+        lit_sel = st.selectbox("Tipo de Luz", DEMO_LIGHTING, index=st.session_state.rnd_lit)
         if "Custom" in lit_sel: final_lit = translate_to_english(st.text_input("Luz Custom", key="ll"))
         else: final_lit = lit_sel
 
     with c3:
         st.markdown("**3. Óptica / Lente**")
-        lens_sel = st.selectbox("Lente y Apertura", LIST_LENSES)
+        lens_sel = st.selectbox("Lente y Apertura", LIST_LENSES, index=st.session_state.rnd_lens)
         if "Custom" in lens_sel: final_lens = translate_to_english(st.text_input("Lente Custom", key="cus_lens"))
         else: final_lens = lens_sel
         
         st.markdown("**6. Estilo Visual**")
-        sty = st.selectbox("Look & Film Stock", DEMO_STYLES)
+        sty = st.selectbox("Look & Film Stock", DEMO_STYLES, index=st.session_state.rnd_sty)
 
 with t5:
     st.markdown("### 🎙️ Estudio de Voz y Lip Sync")
     
     st.markdown("""
     <div class="big-warning">
-    ⚠️ <b>IMPORTANTE:</b> El audio que subas aquí es para activar el modo "Lip-Sync" en el prompt. 
-    <b>Recuerda subir el archivo de audio real a tu IA de vídeo (Kling, Hedra, Runway)</b>.
+    ⚠️ <b>IMPORTANTE:</b> El audio que subas aquí activa el modo "Lip-Sync" en el texto. 
+    <b>Sube el archivo de audio real a la IA de vídeo (Kling/Runway).</b>
     </div>
     """, unsafe_allow_html=True)
     
@@ -469,7 +452,7 @@ with t5:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
-    # --- SUNO AI SECTION (DENTRO DE LA PESTAÑA 5) ---
+    # --- SUNO AI SECTION ---
     st.markdown("---")
     with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
         st.info("Genera el prompt para crear la canción en Suno AI.")
@@ -523,7 +506,7 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('physics_medium', phy_med)
     b.set_field('physics_details', phy_det)
     
-    # Nuevos campos de cinematografía
+    # CINE PRO
     b.set_field('shot_type', final_shot)
     b.set_field('angle', final_angle)
     b.set_field('lens', final_lens)
@@ -543,10 +526,17 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     
     res = b.build()
     st.session_state.generated_output = res
+    st.session_state.generated_explanation = "\n".join(b.explanation) # Guardar la explicación
     st.session_state.history.append(res)
 
 if st.session_state.generated_output:
     st.markdown("---")
+    
+    # BLOQUE DE EXPLICACIÓN (NUEVO)
+    if st.session_state.generated_explanation:
+        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia del Prompt (Por qué se hizo así):</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
+    
     st.subheader("📝 Prompt Final")
-    final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
+    # Botón de Copia (Utilizando st.code que tiene botón nativo)
     st.code(st.session_state.generated_output, language="text")
+    st.caption("👆 Pulsa el icono de 'Copiar' en la esquina superior derecha del bloque negro.")
