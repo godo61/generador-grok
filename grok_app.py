@@ -28,6 +28,7 @@ def apply_custom_styles(dark_mode=False):
         .stTextArea textarea {{ border-left: 5px solid #FF4B4B !important; }}
         /* Estilo para la explicación de estrategia */
         .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; font-style: italic; color: #DDDDDD; }}
+        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -48,17 +49,18 @@ if 'uploaded_image_name' not in st.session_state: st.session_state.uploaded_imag
 if 'uploaded_audio_name' not in st.session_state: st.session_state.uploaded_audio_name = None
 if 'uploaded_end_frame_name' not in st.session_state: st.session_state.uploaded_end_frame_name = None
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
-if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = "" # NUEVO
+if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
 
-# Variables para Randomizer (Inicializar si no existen)
-if 'rnd_cam' not in st.session_state: st.session_state.rnd_cam = 0
+# Variables para Randomizer (Inicializar a 0 para 'Neutral')
 if 'rnd_lit' not in st.session_state: st.session_state.rnd_lit = 0
 if 'rnd_sty' not in st.session_state: st.session_state.rnd_sty = 0
 if 'rnd_lens' not in st.session_state: st.session_state.rnd_lens = 0
 if 'rnd_angle' not in st.session_state: st.session_state.rnd_angle = 0
 if 'rnd_shot' not in st.session_state: st.session_state.rnd_shot = 0
+# Mantenemos rnd_cam por compatibilidad, aunque ahora usamos shot/angle/lens
+if 'rnd_cam' not in st.session_state: st.session_state.rnd_cam = 0 
 
 # --- FUNCIONES ---
 def translate_to_english(text):
@@ -68,17 +70,20 @@ def translate_to_english(text):
         except: return str(text)
     return str(text)
 
-# --- LISTAS ---
+# --- LISTAS (MOVIDAS AL PRINCIPIO PARA EVITAR ERROR) ---
 DEMO_STYLES = ["Neutral (Grok Default)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula Background)", "🚀 ISS Space Station Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra (Snowstorm)", "🏙️ Cyberpunk City (Neon Rain)", "🌲 Mystic Forest (Fog)"]
 DEMO_WARDROBE = ["✏️ Custom...", "torn sportswear and a cap", "tactical survival gear", "worn denim and leather jacket", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_LIGHTING = ["Neutral (Auto-Enhance)", "✏️ Custom...", "Harsh golden hour sunlight (long shadows)", "Dramatic low-key lighting (Chiaroscuro)", "Soft overcast diffusion", "Neon City Glow (Blue/Pink)", "Stark Space Sunlight (No Fill)", "Underwater Caustics", "Bioluminescence"]
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# CINE LISTS
+# CINE PRO LISTS
 LIST_SHOT_TYPES = ["Neutral (Auto-Compose)", "✏️ Custom...", "Extreme Long Shot (Gran Plano General)", "Long Shot (Plano General)", "Medium Shot (Plano Medio)", "Cowboy Shot (Plano Americano)", "Close-Up (Primer Plano)", "Extreme Close-Up (Macro Detalle)", "Over-The-Shoulder (Sobre el Hombro)"]
 LIST_ANGLES = ["Neutral (Eye Level)", "✏️ Custom...", "Low Angle (Contrapicado / Heroic)", "High Angle (Picado / Vulnerable)", "Dutch Angle (Plano Holandés / Tilted)", "Bird's Eye View (Vista de Pájaro)", "Drone Aerial View (FPV)", "POV (Point of View)"]
 LIST_LENSES = ["Neutral (Standard)", "✏️ Custom...", "16mm Wide Angle (Landscape/Angular)", "35mm Prime (Cinema/Street Look)", "50mm Lens (Human Eye)", "85mm f/1.4 (Portrait/Bokeh Intenso)", "100mm Macro (Micro Details)", "Canon L-Series Style (Pro Sharpness)", "Vintage Anamorphic (Lens Flares)", "Fisheye Lens (Distorted)"]
+
+# LISTA LEGACY (Por si acaso)
+DEMO_CAMERAS = ["Neutral", "Custom..."] + LIST_SHOT_TYPES[2:] # Fallback
 
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 DEMO_AUDIO_MOOD = ["Neutral (Silent)", "✏️ Custom...", "Intense Suspense Score", "Epic Orchestral Swell", "Silent (breathing only)", "Horror Drone", "Upbeat Rock", "Synthwave"]
@@ -116,7 +121,7 @@ class GrokVideoPromptBuilder:
         self.image_filename = ""
         self.end_image_filename = None
         self.audio_filename = None
-        self.explanation = [] # Lista para guardar los "Porqués"
+        self.explanation = []
 
     def set_field(self, key, value):
         self.parts[key] = str(value).strip() if isinstance(value, str) else value
@@ -182,7 +187,6 @@ class GrokVideoPromptBuilder:
         if env: 
             narrative_block.append(f"ENVIRONMENT: {env}.")
         else:
-            # AUTO-FILL INTELIGENTE
             if enhance_mode: 
                 narrative_block.append("ENVIRONMENT: Detailed, cinematic background appropriate for the context.")
                 self.explanation.append("🤖 **Auto-Entorno:** No seleccionaste entorno, así que le pedí a Grok que genere uno cinemático acorde al sujeto.")
@@ -191,7 +195,6 @@ class GrokVideoPromptBuilder:
 
         # 3. FÍSICA
         atmosphere = []
-        # Luz Inteligente
         lit_val = p.get('light_custom') or p.get('light', '')
         if "Custom" in lit_val or "Neutral" in lit_val: lit_val = ""
         
@@ -201,7 +204,6 @@ class GrokVideoPromptBuilder:
             atmosphere.append("LIGHTING: Dynamic lighting matching the emotional tone of the scene")
             self.explanation.append("💡 **Auto-Luz:** Le he pedido a Grok que decida la mejor iluminación para esta emoción.")
 
-        # Simulación Física
         if p.get('physics_medium') and "Neutral" not in p['physics_medium']:
             dets = [d.split('(')[0].strip() for d in p.get('physics_details', [])]
             if dets: 
@@ -213,7 +215,6 @@ class GrokVideoPromptBuilder:
         # 4. CINE (PRO)
         cinema = []
         
-        # Procesar selecciones o dejar libertad
         shot_t = p.get('shot_type', '')
         if "Custom" in shot_t or "Neutral" in shot_t: shot_t = ""
         
@@ -227,7 +228,6 @@ class GrokVideoPromptBuilder:
         if angle_t: cinema.append(angle_t.split('(')[0].strip())
         if lens_t: cinema.append(f"Shot on {lens_t.split('(')[0].strip()}")
         
-        # Estilo
         sty = p.get('style', '')
         if "Neutral" not in sty: cinema.append(f"AESTHETIC: {sty}")
         
@@ -244,6 +244,13 @@ class GrokVideoPromptBuilder:
         
         if audio_parts: prompt.append(f"SOUND DESIGN: {'. '.join(audio_parts)}.")
 
+        # DIALOGO CONTEXTO
+        if p.get('dialogue_enabled'):
+            dialogue_text = p.get('dialogue_text', '')
+            if dialogue_text:
+                voice_char = p.get('voice_char', 'Character')
+                prompt.append(f"DIALOGUE CONTEXT: {voice_char} says: \"{dialogue_text}\".")
+
         if p.get('ar'): prompt.append(f"--ar {p['ar'].split(' ')[0]}")
 
         return "\n\n".join(prompt)
@@ -254,12 +261,8 @@ with st.sidebar:
     is_dark = st.toggle("🌙 Modo Oscuro", value=True)
     apply_custom_styles(is_dark)
     
-    # Randomizer Logic
+    # RANDOMIZER (Ahora sí funciona porque las listas ya existen)
     if st.button("🎲 Sugerir Look (Random)"):
-        # Actualizamos session states con índices aleatorios
-        # Nota: Los índices deben estar dentro del rango de las listas (excluyendo los primeros 2 elementos de 'Neutral' y 'Custom')
-        import random
-        st.session_state.rnd_cam = random.randint(2, len(DEMO_CAMERAS)-1)
         st.session_state.rnd_lit = random.randint(2, len(DEMO_LIGHTING)-1)
         st.session_state.rnd_sty = random.randint(1, len(DEMO_STYLES)-1)
         st.session_state.rnd_shot = random.randint(2, len(LIST_SHOT_TYPES)-1)
@@ -270,7 +273,12 @@ with st.sidebar:
     if st.button("🔄 Restaurar Fábrica"):
         st.session_state.characters = DEFAULT_CHARACTERS.copy()
         st.session_state.custom_props = DEFAULT_PROPS.copy()
-        st.session_state.rnd_cam = 0 # Reset
+        # Reset Randoms
+        st.session_state.rnd_lit = 0
+        st.session_state.rnd_sty = 0
+        st.session_state.rnd_shot = 0
+        st.session_state.rnd_angle = 0
+        st.session_state.rnd_lens = 0
         st.rerun()
     
     st.header("🧬 Activos")
@@ -364,7 +372,6 @@ with t4:
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**1. Encuadre**")
-        # Usamos el session_state.rnd_shot como index
         shot_sel = st.selectbox("Tipo de Plano", LIST_SHOT_TYPES, index=st.session_state.rnd_shot)
         if "Custom" in shot_sel: final_shot = translate_to_english(st.text_input("Plano Custom", key="cus_shot"))
         else: final_shot = shot_sel
