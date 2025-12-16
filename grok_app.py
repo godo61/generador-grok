@@ -348,4 +348,133 @@ with t5:
     st.markdown("""
     <div class="big-warning">
     ⚠️ <b>IMPORTANTE:</b> El audio que subas aquí es para activar el modo "Lip-Sync" en el prompt. 
-    <b>Recuerda subir el archivo de audio real a tu
+    <b>Recuerda subir el archivo de audio real a tu IA de vídeo (Kling, Hedra, Runway)</b>.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # UPLOADER DE AUDIO
+    audio_file = st.file_uploader("📂 Subir Audio Referencia (MP3/WAV)", type=["mp3", "wav", "m4a"])
+    if audio_file:
+        st.session_state.uploaded_audio_name = audio_file.name
+        st.audio(audio_file)
+        st.success(f"✅ Audio detectado. Se activará Lip Sync.")
+    else:
+        st.session_state.uploaded_audio_name = None
+
+    dialogue_enabled = st.toggle("🗣️ Configurar Detalles de Voz", value=False)
+    
+    if dialogue_enabled:
+        with st.container(border=True):
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                voice_opts = ["Protagonista Actual", "Narrador / Voiceover"] + list(st.session_state.characters.keys())
+                v_char_sel = st.selectbox("Personaje que habla", voice_opts)
+                if v_char_sel == "Protagonista Actual": voice_char = "The Main Character"
+                elif v_char_sel == "Narrador / Voiceover": voice_char = "Narrator"
+                else: voice_char = v_char_sel
+
+                v_type = st.selectbox("Tipo de Voz", VOICE_TYPES)
+                if "Custom" in v_type: voice_type = translate_to_english(st.text_input("Tipo Voz Custom", key="vtc"))
+                else: voice_type = v_type
+
+            with dc2:
+                v_acc = st.selectbox("Acento", VOICE_ACCENTS)
+                if "Custom" in v_acc: voice_accent = translate_to_english(st.text_input("Acento Custom", key="vac"))
+                else: voice_accent = v_acc
+
+                v_emo = st.selectbox("Emoción", VOICE_EMOTIONS)
+                if "Custom" in v_emo: voice_emotion = translate_to_english(st.text_input("Emoción Custom", key="vec"))
+                else: voice_emotion = v_emo
+            
+            d_txt = st.text_area("Guion / Letra:", placeholder="Escribe lo que dice/canta el personaje...")
+            dialogue_text = translate_to_english(d_txt)
+
+    st.markdown("---")
+    st.markdown("### 🎵 Diseño Sonoro (Video)")
+    c1, c2, c3 = st.columns(3)
+    with c1: 
+        m_sel = st.selectbox("Música (Video)", DEMO_AUDIO_MOOD)
+        mus_vid = translate_to_english(st.text_input("Mus. Custom", key="mc")) if "Custom" in m_sel else m_sel
+    with c2:
+        e_aud = st.selectbox("Ambiente", DEMO_AUDIO_ENV)
+        env_vid = translate_to_english(st.text_input("Amb. Custom", key="ec")) if "Custom" in e_aud else e_aud
+    with c3:
+        s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
+        sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
+
+    # --- SUNO AI SECTION ---
+    st.markdown("---")
+    with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
+        st.info("Genera el prompt para crear la canción en Suno AI.")
+        
+        suno_col1, suno_col2 = st.columns(2)
+        with suno_col1:
+            suno_instrumental = st.toggle("🎻 Instrumental", value=False, key="suno_instr_toggle")
+            suno_duration = st.slider("Duración Estimada", 30, 240, 120, step=30, format="%d seg", key="suno_dur")
+            
+            if suno_duration <= 45: struct_suggestion = "[Intro] [Short Hook] [Outro]"
+            elif suno_duration <= 90: struct_suggestion = "[Intro] [Verse] [Chorus] [Outro]"
+            else: struct_suggestion = "[Intro] [Verse] [Chorus] [Bridge] [Chorus] [Outro]"
+                
+        with suno_col2:
+            suno_genre = st.text_input("Estilo / Género", placeholder="Cyberpunk, Lo-Fi, Epic...", key="suno_gen")
+            suno_mood = st.text_input("Mood / Atmósfera", placeholder="Dark, Tense...", key="suno_mood")
+
+        suno_lyrics = ""
+        if not suno_instrumental:
+            suno_lyrics = st.text_area("Letra / Tema:", placeholder="Escribe la letra o describe el tema...", key="suno_lyr")
+
+        if st.button("🎵 GENERAR PROMPT SUNO", key="btn_suno"):
+            meta_tags = []
+            if suno_instrumental: meta_tags.append("[Instrumental]")
+            if suno_genre: meta_tags.append(f"[{translate_to_english(suno_genre)}]")
+            if suno_mood: meta_tags.append(f"[{translate_to_english(suno_mood)}]")
+            
+            final_suno = f"Style Prompts: {' '.join(meta_tags)}\n\n"
+            final_suno += f"Structure Suggestion:\n{struct_suggestion}\n\n"
+            
+            if not suno_instrumental and suno_lyrics:
+                eng_lyrics = translate_to_english(suno_lyrics)
+                final_suno += f"Lyrics / Topic:\n[Verse]\n{eng_lyrics}\n\n[Chorus]\n..."
+            
+            st.code(final_suno, language="text")
+
+# GENERAR
+if st.button("✨ GENERAR PROMPT PRO", type="primary"):
+    b = GrokVideoPromptBuilder()
+    if st.session_state.uploaded_image_name:
+        b.activate_img2video(st.session_state.uploaded_image_name, st.session_state.uploaded_end_frame_name)
+    if st.session_state.uploaded_audio_name:
+        b.activate_audio_sync(st.session_state.uploaded_audio_name)
+    
+    b.set_field('enhance_mode', enhance_mode)
+    b.set_field('subject', final_sub)
+    b.set_field('action', final_act)
+    b.set_field('wardrobe', final_ward)
+    b.set_field('props', final_prop)
+    b.set_field('env', final_env)
+    b.set_field('physics_medium', phy_med)
+    b.set_field('physics_details', phy_det)
+    b.set_field('camera', final_cam)
+    b.set_field('light', final_lit)
+    b.set_field('style', sty)
+    b.set_field('ar', ar)
+    b.set_field('audio_mood', mus_vid)
+    b.set_field('audio_env', env_vid)
+    b.set_field('audio_sfx', sfx_vid)
+    b.set_field('dialogue_enabled', dialogue_enabled)
+    b.set_field('dialogue_text', dialogue_text)
+    b.set_field('voice_char', voice_char)
+    b.set_field('voice_type', voice_type)
+    b.set_field('voice_accent', voice_accent)
+    b.set_field('voice_emotion', voice_emotion)
+    
+    res = b.build()
+    st.session_state.generated_output = res
+    st.session_state.history.append(res)
+
+if st.session_state.generated_output:
+    st.markdown("---")
+    st.subheader("📝 Prompt Final")
+    final_editable = st.text_area("Editar:", value=st.session_state.generated_output, height=350)
+    st.code(st.session_state.generated_output, language="text")
