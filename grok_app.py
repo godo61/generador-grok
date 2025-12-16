@@ -9,7 +9,7 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎥")
 
 # --- ESTILOS CSS ---
 def apply_custom_styles(dark_mode=False):
@@ -77,11 +77,42 @@ DEMO_LIGHTING = [
     "Underwater Caustics", "Bioluminescence"
 ]
 DEMO_ASPECT_RATIOS = ["21:9 (Cinematic)", "16:9 (Landscape)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
-DEMO_CAMERAS = [
-    "✏️ Custom...", "Low angle, wide lens (looking up)", "Handheld dynamic shake (Chaos)", 
-    "Telephoto compression (85mm, Bokeh)", "Drone follow Shot (High Angle)", 
-    "GoPro POV (Fisheye)", "Underwater Housing (Split-level)"
+
+# --- NUEVAS LISTAS DE CINEMATOGRAFÍA PRO (V48) ---
+LIST_SHOT_TYPES = [
+    "Neutral (Auto)", "✏️ Custom...",
+    "Extreme Long Shot (Gran Plano General)", 
+    "Long Shot (Plano General)", 
+    "Medium Shot (Plano Medio)", 
+    "Cowboy Shot (Plano Americano)",
+    "Close-Up (Primer Plano)", 
+    "Extreme Close-Up (Macro Detalle)", 
+    "Over-The-Shoulder (Sobre el Hombro)"
 ]
+
+LIST_ANGLES = [
+    "Neutral (Eye Level)", "✏️ Custom...",
+    "Low Angle (Contrapicado / Heroic)", 
+    "High Angle (Picado / Vulnerable)", 
+    "Dutch Angle (Plano Holandés / Tilted)", 
+    "Bird's Eye View (Vista de Pájaro / Top-down)", 
+    "Worm's Eye View (Vista de Gusano)",
+    "Drone Aerial View (FPV)",
+    "POV (Point of View)"
+]
+
+LIST_LENSES = [
+    "Neutral (Standard)", "✏️ Custom...",
+    "16mm Wide Angle (Landscape/Angular)", 
+    "35mm Prime (Cinema/Street Look)", 
+    "50mm Lens (Human Eye)", 
+    "85mm f/1.4 (Portrait/Bokeh Intenso)", 
+    "100mm Macro (Micro Details)",
+    "Canon L-Series Style (Pro Sharpness)",
+    "Vintage Anamorphic (Lens Flares)",
+    "Fisheye Lens (Distorted)"
+]
+
 DEMO_PROPS = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
 # --- LISTAS AUDIO & DIÁLOGO ---
@@ -206,12 +237,30 @@ class GrokVideoPromptBuilder:
                 if "Custom" in v_emotion: v_emotion = ""
                 prompt.append(f"SCRIPT CONTEXT: {voice_char} says: \"{dialogue_text}\" with {v_emotion} tone.")
 
-        # 5. CINE
+        # 5. CINE Y LENTES (NUEVA LOGICA V48)
         cinema = []
-        cam_val = p.get('camera_custom') or p.get('camera', '')
-        if "Custom" in cam_val: cam_val = ""
-        if cam_val: cinema.append(cam_val)
-        if p.get('style'): cinema.append(f"STYLE: {p['style']}")
+        
+        # Shot Type
+        shot_t = p.get('shot_type', '')
+        if "Custom" in shot_t: shot_t = ""
+        elif "Neutral" in shot_t: shot_t = ""
+        if shot_t: cinema.append(shot_t.split('(')[0].strip())
+        
+        # Angle
+        angle_t = p.get('angle', '')
+        if "Custom" in angle_t: angle_t = ""
+        elif "Neutral" in angle_t: angle_t = ""
+        if angle_t: cinema.append(angle_t.split('(')[0].strip())
+        
+        # Lens
+        lens_t = p.get('lens', '')
+        if "Custom" in lens_t: lens_t = ""
+        elif "Neutral" in lens_t: lens_t = ""
+        if lens_t: cinema.append(f"Shot on {lens_t.split('(')[0].strip()}")
+        
+        # Style
+        if p.get('style'): cinema.append(f"AESTHETIC: {p['style']}")
+        
         if cinema: prompt.append(f"CINEMATOGRAPHY: {', '.join(cinema)}.")
 
         # 6. AUDIO Y PARÁMETROS
@@ -278,11 +327,11 @@ with st.sidebar:
 st.title("🎬 Grok Production Studio (VFX Edition)")
 enhance_mode = st.toggle("🔥 INTENSIFICADOR VFX (Detalle visceral, blur, sudor...)", value=True)
 
-t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cámara", "🎵 Audio & Voz"])
+t1, t2, t3, t4, t5 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio & Voz"])
 
 # VARS INIT
 final_sub, final_act, final_ward, final_prop, final_env = "", "", "", "", ""
-final_lit, final_cam = "", ""
+final_lit, final_shot, final_angle, final_lens = "", "", "", ""
 mus_vid, env_vid, sfx_vid = "", "", ""
 phy_med, phy_det = "Neutral / Estudio", []
 dialogue_enabled = False
@@ -329,18 +378,36 @@ with t3:
     with c2: phy_det = st.multiselect("Detalles Activos", PHYSICS_LOGIC[phy_med])
 
 with t4:
+    # --- CINEMATOGRAFÍA PRO (V48) ---
     c1, c2, c3 = st.columns(3)
-    with c1: 
-        cam_sel = st.selectbox("Cámara", DEMO_CAMERAS)
-        if "Custom" in cam_sel: final_cam = translate_to_english(st.text_input("Cámara Custom", key="cc"))
-        else: final_cam = cam_sel
-    with c2: 
-        lit_sel = st.selectbox("Iluminación", DEMO_LIGHTING)
+    with c1:
+        st.markdown("**1. Encuadre**")
+        shot_sel = st.selectbox("Tipo de Plano", LIST_SHOT_TYPES)
+        if "Custom" in shot_sel: final_shot = translate_to_english(st.text_input("Plano Custom", key="cus_shot"))
+        else: final_shot = shot_sel
+        
+        st.markdown("**4. Formato**")
+        ar = st.selectbox("Aspect Ratio", DEMO_ASPECT_RATIOS)
+
+    with c2:
+        st.markdown("**2. Ángulo**")
+        angle_sel = st.selectbox("Posición de Cámara", LIST_ANGLES)
+        if "Custom" in angle_sel: final_angle = translate_to_english(st.text_input("Ángulo Custom", key="cus_ang"))
+        else: final_angle = angle_sel
+        
+        st.markdown("**5. Iluminación**")
+        lit_sel = st.selectbox("Tipo de Luz", DEMO_LIGHTING)
         if "Custom" in lit_sel: final_lit = translate_to_english(st.text_input("Luz Custom", key="ll"))
         else: final_lit = lit_sel
-    with c3: 
-        sty = st.selectbox("Estilo", DEMO_STYLES)
-        ar = st.selectbox("Formato", DEMO_ASPECT_RATIOS)
+
+    with c3:
+        st.markdown("**3. Óptica / Lente**")
+        lens_sel = st.selectbox("Lente y Apertura", LIST_LENSES)
+        if "Custom" in lens_sel: final_lens = translate_to_english(st.text_input("Lente Custom", key="cus_lens"))
+        else: final_lens = lens_sel
+        
+        st.markdown("**6. Estilo Visual**")
+        sty = st.selectbox("Look & Film Stock", DEMO_STYLES)
 
 with t5:
     st.markdown("### 🎙️ Estudio de Voz y Lip Sync")
@@ -402,7 +469,7 @@ with t5:
         s_sel = st.selectbox("SFX", DEMO_SFX_COMMON)
         sfx_vid = translate_to_english(st.text_input("SFX Custom", key="sc")) if "Custom" in s_sel else s_sel
 
-    # --- SUNO AI SECTION ---
+    # --- SUNO AI SECTION (DENTRO DE LA PESTAÑA 5) ---
     st.markdown("---")
     with st.expander("🎹 Generador Musical (Suno AI)", expanded=False):
         st.info("Genera el prompt para crear la canción en Suno AI.")
@@ -455,7 +522,12 @@ if st.button("✨ GENERAR PROMPT PRO", type="primary"):
     b.set_field('env', final_env)
     b.set_field('physics_medium', phy_med)
     b.set_field('physics_details', phy_det)
-    b.set_field('camera', final_cam)
+    
+    # Nuevos campos de cinematografía
+    b.set_field('shot_type', final_shot)
+    b.set_field('angle', final_angle)
+    b.set_field('lens', final_lens)
+    
     b.set_field('light', final_lit)
     b.set_field('style', sty)
     b.set_field('ar', ar)
