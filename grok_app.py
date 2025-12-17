@@ -12,20 +12,28 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. EL INTERCEPTOR (LA SOLUCIÓN FINAL) ---
-def validate_or_rerun(key, options):
+# --- 2. LA SOLUCIÓN DEFINITIVA (DYNAMIC KEY WRAPPER) ---
+def dynamic_selectbox(label, options, base_key, **kwargs):
     """
-    Comprueba si el valor en memoria es válido.
-    Si NO lo es, lo corrige y REINICIA la app inmediatamente.
-    Al reiniciar, evitamos que Streamlit intente dibujar el error rojo.
+    Crea un selectbox cuya 'key' cambia si las 'options' cambian.
+    Esto evita al 100% el error 'Value not in options' porque si la lista cambia,
+    Streamlit trata el widget como uno nuevo y lo inicia limpio en el índice 0.
     """
-    if key in st.session_state:
-        current_val = st.session_state[key]
-        if current_val not in options:
-            # 1. Corregir el valor
-            st.session_state[key] = options[0]
-            # 2. ¡CORTAR EL CABLE! Reiniciar para evitar el flash rojo
-            st.rerun()
+    # Creamos una firma única basada en las opciones disponibles
+    options_hash = str(hash(tuple(options)))
+    
+    # La key real combina el nombre base con el hash de las opciones
+    safe_key = f"{base_key}_{options_hash}"
+    
+    # Guardamos la selección en una variable persistente 'shadow' para intentar mantenerla
+    # si las opciones no han cambiado radicalmente, o usar el índice 0 si es un widget nuevo.
+    
+    # Renderizamos el widget con la key dinámica
+    selection = st.selectbox(label, options, key=safe_key, **kwargs)
+    
+    # Guardamos el valor limpio en el estado global para que el resto de la app lo encuentre fácil
+    st.session_state[base_key] = selection
+    return selection
 
 # --- 3. DATOS MAESTROS ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
@@ -71,13 +79,14 @@ PHYSICS_LOGIC = {
 }
 
 # --- 4. INICIALIZACIÓN BÁSICA ---
-defaults = {
-    'generated_output': "", 'generated_explanation': "",
-    'characters': DEFAULT_CHARACTERS.copy(), 'custom_props': DEFAULT_PROPS.copy(),
-    'uploader_key': 0, 'act_input': "", 'last_img_name': ""
-}
-for k, v in defaults.items():
-    if k not in st.session_state: st.session_state[k] = v
+# Solo inicializamos lo que NO es un widget selectbox (ellos se autogestionan ahora)
+if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
+if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
+if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
+if 'act_input' not in st.session_state: st.session_state.act_input = ""
+if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
+if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
+if 'last_img_name' not in st.session_state: st.session_state.last_img_name = ""
 
 # --- 5. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
@@ -143,37 +152,35 @@ def perform_smart_update():
     action = st.session_state.get('act_input', "")
     suggestions = apply_smart_look_logic(action)
     
-    mappings = [
-        ('shot_select', LIST_SHOT_TYPES),
-        ('angle_select', LIST_ANGLES),
-        ('lens_select', LIST_LENSES),
-        ('lit_select', DEMO_LIGHTING),
-        ('sty_select', DEMO_STYLES)
-    ]
+    # Actualizamos las variables base. 
+    # Al renderizarse de nuevo, dynamic_selectbox usará estos valores si las opciones coinciden.
+    # NOTA: En la arquitectura dynamic_selectbox, no podemos forzar el índice desde fuera fácilmente
+    # sin recargar la página, pero guardamos la intención en session_state para la próxima carga.
     
-    for key, options in mappings:
-        target_val = ""
-        if key == 'shot_select': target_val = suggestions['shot']
-        elif key == 'angle_select': target_val = suggestions['angle']
-        elif key == 'lens_select': target_val = suggestions['lens']
-        elif key == 'lit_select': target_val = suggestions['lit']
-        elif key == 'sty_select': target_val = suggestions['sty']
-        
-        for opt in options:
-            if target_val.split('(')[0] in opt:
-                st.session_state[key] = opt
-                break
+    st.session_state['shot_select_override'] = suggestions['shot']
+    st.session_state['angle_select_override'] = suggestions['angle']
+    st.session_state['lens_select_override'] = suggestions['lens']
+    st.session_state['lit_select_override'] = suggestions['lit']
+    st.session_state['sty_select_override'] = suggestions['sty']
+
+def get_override_index(key, options):
+    # Función auxiliar para encontrar el índice sugerido por el botón "Sugerir"
+    override_key = f"{key}_override"
+    if override_key in st.session_state:
+        target = st.session_state[override_key]
+        for idx, opt in enumerate(options):
+            if target.split('(')[0] in opt:
+                del st.session_state[override_key] # Consumir el override
+                return idx
+    return 0
 
 def perform_reset():
     st.session_state['act_input'] = ""
-    # Borrado radical
-    keys_to_kill = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ar_select', 'ward_select', 'phy_select']
-    for k in keys_to_kill:
+    # Simplemente limpiamos overrides y outputs
+    keys_to_clean = ['generated_output', 'generated_explanation', 'shot_select_override']
+    for k in keys_to_clean:
         if k in st.session_state: del st.session_state[k]
-        
     st.session_state['uploader_key'] += 1 
-    st.session_state['generated_output'] = ""
-    st.session_state['generated_explanation'] = ""
 
 # --- 7. BUILDER ---
 class PromptBuilder:
@@ -202,7 +209,7 @@ with st.sidebar:
     
     if st.button("🎲 Sugerir Look (Aplicar)"):
         perform_smart_update()
-        st.toast("✨ Selectores actualizados.")
+        st.toast("✨ Configuración aplicada. La interfaz se actualizará.")
         st.rerun()
 
     if st.button("🗑️ Nueva Escena"):
@@ -218,14 +225,15 @@ with st.sidebar:
         st.image(uploaded_file, caption="Ref")
         if 'last_img_name' not in st.session_state or st.session_state.last_img_name != uploaded_file.name:
             ridx = detect_ar(uploaded_file)
-            st.session_state.ar_select = DEMO_ASPECT_RATIOS[ridx]
+            # Guardamos un override para que el dynamic_selectbox lo pille
+            st.session_state['ar_select_override'] = DEMO_ASPECT_RATIOS[ridx]
             st.session_state.last_img_name = uploaded_file.name
             st.rerun()
             
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 9. MAIN ---
-st.title("🎬 Grok Production Studio (V82)")
+st.title("🎬 Grok Production Studio (V83)")
 
 with st.form("main_form"):
     
@@ -234,16 +242,13 @@ with st.form("main_form"):
     with t1:
         c1, c2 = st.columns(2)
         with c1:
-            # 1. Construcción dinámica
+            # Lista dinámica
             char_opts = ["-- Seleccionar Protagonista --"]
             if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
             char_opts += list(st.session_state.characters.keys())
             
-            # 2. VALIDAR O REINICIAR (INTERCEPTOR)
-            validate_or_rerun('char_select', char_opts)
-            
-            # 3. Dibujar
-            char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
+            # USO DE DYNAMIC SELECTBOX
+            char_sel = dynamic_selectbox("Protagonista", char_opts, "char_select")
             
             if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
             elif "--" in char_sel: final_sub = ""
@@ -255,8 +260,7 @@ with st.form("main_form"):
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
             tpl_opts = ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys())
-            validate_or_rerun('tpl_select', tpl_opts)
-            tpl = st.selectbox("Plantilla Rápida", tpl_opts, key="tpl_select")
+            tpl = dynamic_selectbox("Plantilla Rápida", tpl_opts, "tpl_select")
         with col_btn:
             if st.form_submit_button("📥 Pegar"):
                 if tpl != "Seleccionar...":
@@ -269,13 +273,11 @@ with st.form("main_form"):
     with t2:
         c1, c2 = st.columns(2)
         with c1:
-            validate_or_rerun('env_select', DEMO_ENVIRONMENTS)
-            e_sel = st.selectbox("Entorno", DEMO_ENVIRONMENTS, key="env_select")
+            e_sel = dynamic_selectbox("Entorno", DEMO_ENVIRONMENTS, "env_select")
             final_env = st.text_input("Custom Env", key="env_cust") if "Custom" in e_sel else e_sel
             
             all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS_LIST[2:]
-            validate_or_rerun('prop_select', all_props)
-            prop_sel = st.selectbox("Objeto", all_props, key="prop_select")
+            prop_sel = dynamic_selectbox("Objeto", all_props, "prop_select")
             
             if prop_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[prop_sel]
             elif "Custom" in prop_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
@@ -284,16 +286,14 @@ with st.form("main_form"):
 
         with c2:
             st.info("💡 Consejo: Elige manga corta/larga explícitamente.")
-            validate_or_rerun('ward_select', DEMO_WARDROBE)
-            ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
+            ward_sel = dynamic_selectbox("Vestuario", DEMO_WARDROBE, "ward_select")
             if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
             else: final_ward = ward_sel
 
     with t3:
         c1, c2 = st.columns(2)
         with c1: 
-            validate_or_rerun('phy_select', list(PHYSICS_LOGIC.keys()))
-            phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="phy_select")
+            phy_med = dynamic_selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), "phy_select")
         with c2: 
             phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
@@ -301,23 +301,26 @@ with st.form("main_form"):
         st.info("💡 Usa 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            validate_or_rerun('shot_select', LIST_SHOT_TYPES)
-            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Extreme Long: Paisajes épicos. Long: Cuerpo entero. Medium: Cintura arriba. Close-Up: Rostro y emoción.")
+            # Para Cinematografía aplicamos la lógica de overrides (Sugestión)
+            idx_shot = get_override_index('shot_select', LIST_SHOT_TYPES)
+            dynamic_selectbox("1. Encuadre", LIST_SHOT_TYPES, "shot_select", index=idx_shot, help="Extreme Long: Paisajes. Close-Up: Caras.")
             
-            validate_or_rerun('ar_select', DEMO_ASPECT_RATIOS)
-            st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
+            idx_ar = get_override_index('ar_select', DEMO_ASPECT_RATIOS)
+            dynamic_selectbox("4. Formato", DEMO_ASPECT_RATIOS, "ar_select", index=idx_ar)
+            
         with c2:
-            validate_or_rerun('angle_select', LIST_ANGLES)
-            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle: Poder/Monstruos. High Angle: Debilidad. Dutch: Tensión/Terror.")
+            idx_ang = get_override_index('angle_select', LIST_ANGLES)
+            dynamic_selectbox("2. Ángulo", LIST_ANGLES, "angle_select", index=idx_ang, help="Low: Poder. High: Debilidad.")
             
-            validate_or_rerun('lit_select', DEMO_LIGHTING)
-            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="Chiaroscuro: Drama/Terror. Golden Hour: Épico/Bello. Neon: Futurista.")
+            idx_lit = get_override_index('lit_select', DEMO_LIGHTING)
+            dynamic_selectbox("5. Iluminación", DEMO_LIGHTING, "lit_select", index=idx_lit)
+            
         with c3:
-            validate_or_rerun('lens_select', LIST_LENSES)
-            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm: Gran angular/Escala. 35mm: Cine clásico. 85mm: Retrato/Fondo borroso.")
+            idx_len = get_override_index('lens_select', LIST_LENSES)
+            dynamic_selectbox("3. Lente", LIST_LENSES, "lens_select", index=idx_len, help="16mm: Epico. 85mm: Retrato.")
             
-            validate_or_rerun('sty_select', DEMO_STYLES)
-            st.selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
+            idx_sty = get_override_index('sty_select', DEMO_STYLES)
+            dynamic_selectbox("6. Estilo", DEMO_STYLES, "sty_select", index=idx_sty)
 
     with t5:
         st.subheader("🎹 Suno AI (Generador Musical)")
@@ -411,7 +414,8 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # Recuperación segura
+    # Recuperación segura desde session_state (que fue actualizado por dynamic_selectbox)
+    # Si no existe (primer run), usamos defaults.
     w_shot = st.session_state.get('shot_select', LIST_SHOT_TYPES[0])
     w_angle = st.session_state.get('angle_select', LIST_ANGLES[0])
     w_lens = st.session_state.get('lens_select', LIST_LENSES[0])
@@ -420,6 +424,7 @@ elif submit_main:
     
     auto_look = apply_smart_look_logic(eng_action) if enhance_mode else {}
     
+    # Lógica híbrida
     final_shot = w_shot if "Neutral" not in w_shot else auto_look.get('shot', "")
     final_angle = w_angle if "Neutral" not in w_angle else auto_look.get('angle', "")
     final_lens = w_lens if "Neutral" not in w_lens else auto_look.get('lens', "")
@@ -445,12 +450,12 @@ elif submit_main:
     st.session_state.generated_explanation = "\n".join(b.explanation)
 
 # --- 11. MOSTRAR RESULTADO ---
-final_output = st.session_state.get('generated_output', "")
-final_explanation = st.session_state.get('generated_explanation', "")
+output = st.session_state.get("generated_output", "")
+explanation = st.session_state.get("generated_explanation", "")
 
-if final_output:
+if output:
     st.markdown("---")
-    if final_explanation:
-        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{final_explanation}</div>', unsafe_allow_html=True)
+    if explanation:
+        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
-    st.code(final_output, language="text")
+    st.code(output, language="text")
