@@ -3,16 +3,40 @@ import re
 import random
 from PIL import Image
 
-# --- 1. CONFIGURACIÓN ---
+# --- 1. CONFIGURACIÓN E IMPORTACIONES SEGURAS ---
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+
 try:
     from deep_translator import GoogleTranslator
     TRANSLATOR_AVAILABLE = True
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+# --- 2. HIGIENIZADOR DE ESTADO (SOLUCIÓN AL FLASH ROJO) ---
+# Esto se ejecuta antes que nada para asegurar que la memoria es válida.
+def sanitize_state():
+    # Diccionario de variables críticas y sus valores por defecto
+    required_keys = {
+        'generated_output': "",
+        'generated_explanation': "",
+        'act_input': "",
+        'uploader_key': 0,
+        'char_select': "-- Seleccionar Protagonista --",
+        # Listas vacías si fallan
+        'history': [],
+    }
+    
+    for key, default in required_keys.items():
+        if key not in st.session_state:
+            st.session_state[key] = default
 
-# --- 2. ESTILOS ---
+    # Limpiar posibles residuos de versiones anteriores que causan conflictos
+    if 'shot_select' not in st.session_state: 
+        st.session_state['shot_select'] = "Neutral (Auto)" 
+    
+sanitize_state()
+
+# --- 3. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
     bg_color = "#0E1117" if dark_mode else "#FFFFFF"
     text_color = "#FAFAFA" if dark_mode else "#31333F"
@@ -29,14 +53,22 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATOS ---
+# --- 4. DATOS MAESTROS ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
 # Listas
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
+DEMO_WARDROBE = [
+    "✏️ Custom...", 
+    "Short-sleeve grey t-shirt", 
+    "Short-sleeve tactical shirt", 
+    "Long-sleeve denim shirt", 
+    "NASA EVA Spacesuit", 
+    "Tactical Wetsuit", 
+    "Elegant Suit"
+]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
 LIST_SHOT_TYPES = ["Neutral (Auto)", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)"]
@@ -74,28 +106,30 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 4. ESTADO ---
-init_vars = {
-    'generated_output': "", 'generated_explanation': "",
-    'characters': DEFAULT_CHARACTERS.copy(), 'custom_props': DEFAULT_PROPS.copy(),
-    'uploader_key': 0, 'act_input': "",
-    'char_select': "-- Seleccionar Protagonista --",
+# --- 5. INICIALIZACIÓN DE ESTADO ---
+# Inicializamos el resto de variables que no son críticas para el arranque
+if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
+if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
+
+# Inicialización de widgets
+default_vars = {
     'shot_select': LIST_SHOT_TYPES[0], 'angle_select': LIST_ANGLES[0],
     'lens_select': LIST_LENSES[0], 'lit_select': DEMO_LIGHTING[0],
     'sty_select': DEMO_STYLES[0], 'env_select': DEMO_ENVIRONMENTS[0],
     'ar_select': DEMO_ASPECT_RATIOS[0], 'phy_select': "Neutral / Estudio",
     'last_img_name': ""
 }
-for k, v in init_vars.items():
+for k, v in default_vars.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 5. FUNCIONES ---
+# --- 6. FUNCIONES ---
 def translate_to_english(text):
     if not text or not str(text).strip(): return ""
-    if TRANSLATOR_AVAILABLE:
-        try: return GoogleTranslator(source='auto', target='en').translate(str(text))
-        except: return str(text)
-    return str(text)
+    try:
+        if TRANSLATOR_AVAILABLE:
+            return GoogleTranslator(source='auto', target='en').translate(str(text))
+        return str(text)
+    except: return str(text) # Fallback silencioso
 
 def detect_ar(image_file):
     try:
@@ -132,7 +166,6 @@ def apply_smart_look_logic(text):
         res['angle'] = "Drone Aerial View"
         res['lens'] = "Fisheye (Distorted)"
         res['sty'] = "Action Movie Screengrab"
-        
     return res
 
 def perform_smart_update():
@@ -168,7 +201,7 @@ def perform_reset():
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
-# --- 6. BUILDER ---
+# --- 7. BUILDER ---
 class PromptBuilder:
     def __init__(self):
         self.parts = []
@@ -188,9 +221,9 @@ class PromptBuilder:
 
     def get_result(self): return "\n\n".join(self.parts)
 
-# --- 7. INTERFAZ ---
+# --- 8. INTERFAZ ---
 with st.sidebar:
-    st.title("🔥 Grok Studio V71")
+    st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
     if st.button("🎲 Sugerir Look (Aplicar)"):
@@ -217,10 +250,9 @@ with st.sidebar:
             
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
-# --- 8. MAIN ---
-st.title("🎬 Grok Production Studio")
+# --- 9. MAIN ---
+st.title("🎬 Grok Production Studio (V72)")
 
-# FORMULARIO PRINCIPAL
 with st.form("main_form"):
     
     t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
@@ -304,7 +336,6 @@ with st.form("main_form"):
 
         s_lyrics = st.text_area("Letra / Tema", placeholder="Describe el tema o pega la letra...")
         
-        # BOTÓN EXCLUSIVO DE SUNO (DENTRO DEL FORM PERO DIFERENCIADO POR LÓGICA)
         submit_suno = st.form_submit_button("🎵 Generar Solo Música (Suno)")
         
         st.markdown("---")
@@ -322,20 +353,17 @@ with st.form("main_form"):
         * **16mm Wide Angle:** Paisajes épicos, Monstruos Gigantes.
         * **35mm Prime:** Cine clásico, documental.
         * **50mm Lens:** Ojo humano. Sin distorsión.
-        * **85mm / 100mm Macro:** Detalles pequeños (ojos, gotas). Fondo borroso.
+        * **85mm / 100mm Macro:** Detalles pequeños. Fondo borroso.
         * **Low Angle:** Poder, Amenaza.
         * **Dutch Angle:** Terror, Locura.
         """)
 
-    # BOTÓN GLOBAL FUERA DE LAS PESTAÑAS (PERO DENTRO DEL FORM)
+    # BOTÓN GLOBAL
     st.markdown("---")
     submit_main = st.form_submit_button("✨ GENERAR PROMPT DE VÍDEO (PRO)")
 
-# --- 9. PROCESAMIENTO ---
-# Lógica Diferenciada según el botón pulsado
-
+# --- 10. PROCESAMIENTO FINAL ---
 if submit_suno:
-    # Lógica exclusiva de Suno
     if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
     elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
     else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
@@ -348,20 +376,17 @@ if submit_suno:
     st.info(f"📋 **Copia esto en Suno:**\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}\n**Structure Note:** {suno_struct}")
 
 elif submit_main:
-    # Lógica de Video Completa
     raw_action = current_text_input if current_text_input else st.session_state.get('act_input', "")
     eng_action = translate_to_english(raw_action)
     
     b = PromptBuilder()
     
-    # Cabecera + Anclaje
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
     ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
     b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
-    # Narrativa
     narrative = []
     if final_sub: narrative.append(final_sub)
     if final_ward: narrative.append(f"WEARING: {final_ward}")
@@ -390,7 +415,7 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # Cine
+    # CINE
     w_shot = st.session_state.shot_select
     w_angle = st.session_state.angle_select
     w_lens = st.session_state.lens_select
