@@ -3,31 +3,22 @@ import re
 import random
 from PIL import Image
 
-# --- 1. CONFIGURACIÓN (SIEMPRE LO PRIMERO) ---
+# --- 1. CONFIGURACIÓN (OBLIGATORIO PRIMERA LÍNEA) ---
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
+
 try:
     from deep_translator import GoogleTranslator
     TRANSLATOR_AVAILABLE = True
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
-
-# --- 2. DATOS Y LISTAS (DEFINIDOS ANTES DE USARSE) ---
+# --- 2. DATOS Y LISTAS MAESTRAS ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# Listas Visuales
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-DEMO_WARDROBE = [
-    "✏️ Custom...", 
-    "Short-sleeve grey t-shirt", 
-    "Short-sleeve tactical shirt", 
-    "Long-sleeve denim shirt", 
-    "NASA EVA Spacesuit", 
-    "Tactical Wetsuit", 
-    "Elegant Suit"
-]
+DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
 LIST_SHOT_TYPES = ["Neutral (Auto)", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)"]
@@ -36,7 +27,6 @@ LIST_LENSES = ["Neutral (Auto)", "16mm Wide Angle (Expansive)", "35mm Prime (Str
 DEMO_LIGHTING = ["Neutral (Auto)", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow", "Stark Space Sunlight"]
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "21:9 (Cinematic)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
-# Expansion Logic
 GEM_EXPANSION_PACK = {
     "run": "sweat and mud on a face contorted in panic, heavy motion blur",
     "correr": "sweat and mud on a face contorted in panic, heavy motion blur",
@@ -65,33 +55,43 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 3. INICIALIZACIÓN DE ESTADO (EL FIX DEL FLASH ROJO) ---
-# Se ejecuta ANTES de pintar cualquier widget para evitar errores de referencia.
-def init_session_state():
+# --- 3. SANITIZADOR DE ESTADO (EL FIX DEL FLASH ROJO) ---
+# Esta función asegura que las variables existen Y que sus valores son válidos para las listas actuales.
+def sanitize_session_state():
+    # 1. Crear variables si no existen
     defaults = {
-        'generated_output': "", 
-        'generated_explanation': "",
-        'characters': DEFAULT_CHARACTERS.copy(), 
-        'custom_props': DEFAULT_PROPS.copy(),
-        'uploader_key': 0, 
-        'act_input': "",
+        'generated_output': "", 'generated_explanation': "",
+        'characters': DEFAULT_CHARACTERS.copy(), 'custom_props': DEFAULT_PROPS.copy(),
+        'uploader_key': 0, 'act_input': "",
         'char_select': "-- Seleccionar Protagonista --",
-        'shot_select': LIST_SHOT_TYPES[0], 
-        'angle_select': LIST_ANGLES[0],
-        'lens_select': LIST_LENSES[0], 
-        'lit_select': DEMO_LIGHTING[0],
-        'sty_select': DEMO_STYLES[0], 
-        'env_select': DEMO_ENVIRONMENTS[0],
-        'ar_select': DEMO_ASPECT_RATIOS[0], 
-        'phy_select': "Neutral / Estudio",
+        'shot_select': LIST_SHOT_TYPES[0], 'angle_select': LIST_ANGLES[0],
+        'lens_select': LIST_LENSES[0], 'lit_select': DEMO_LIGHTING[0],
+        'sty_select': DEMO_STYLES[0], 'env_select': DEMO_ENVIRONMENTS[0],
+        'ar_select': DEMO_ASPECT_RATIOS[0], 'phy_select': "Neutral / Estudio",
         'last_img_name': ""
     }
-    
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+    for k, v in defaults.items():
+        if k not in st.session_state: st.session_state[k] = v
 
-init_session_state()
+    # 2. VALIDAR Listas (Esto elimina el flash rojo "Value not in options")
+    # Si el valor guardado no está en la lista (por un cambio de versión o bug), lo resetea al default [0]
+    validators = [
+        ('shot_select', LIST_SHOT_TYPES),
+        ('angle_select', LIST_ANGLES),
+        ('lens_select', LIST_LENSES),
+        ('lit_select', DEMO_LIGHTING),
+        ('sty_select', DEMO_STYLES),
+        ('env_select', DEMO_ENVIRONMENTS),
+        ('ar_select', DEMO_ASPECT_RATIOS),
+        ('phy_select', list(PHYSICS_LOGIC.keys()))
+    ]
+    
+    for key, options_list in validators:
+        if st.session_state[key] not in options_list:
+            st.session_state[key] = options_list[0]
+
+# EJECUTAR SANITIZADOR ANTES DE NADA
+sanitize_session_state()
 
 # --- 4. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
@@ -104,7 +104,6 @@ def apply_custom_styles(dark_mode=False):
         [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
         [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
         textarea {{ font-size: 1.1rem !important; font-family: monospace !important; border-left: 5px solid #FF4B4B !important; }}
-        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
         .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; color: #EEE; font-style: italic; }}
         .stButton button {{ width: 100%; }}
         </style>
@@ -113,10 +112,10 @@ def apply_custom_styles(dark_mode=False):
 # --- 5. FUNCIONES LÓGICAS ---
 def translate_to_english(text):
     if not text or not str(text).strip(): return ""
-    if TRANSLATOR_AVAILABLE:
-        try: return GoogleTranslator(source='auto', target='en').translate(str(text))
-        except: return str(text)
-    return str(text)
+    try:
+        if TRANSLATOR_AVAILABLE: return GoogleTranslator(source='auto', target='en').translate(str(text))
+        return str(text)
+    except: return str(text)
 
 def detect_ar(image_file):
     try:
@@ -153,7 +152,6 @@ def apply_smart_look_logic(text):
         res['angle'] = "Drone Aerial View"
         res['lens'] = "Fisheye (Distorted)"
         res['sty'] = "Action Movie Screengrab"
-        
     return res
 
 def perform_smart_update():
@@ -239,7 +237,7 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V72)")
+st.title("🎬 Grok Production Studio (V73)")
 
 with st.form("main_form"):
     
@@ -252,11 +250,11 @@ with st.form("main_form"):
             if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
             char_opts += list(st.session_state.characters.keys())
             
-            # Verificación extra de seguridad para selectbox
-            current_char = st.session_state.char_select
-            if current_char not in char_opts: current_char = char_opts[0]
+            # Sanitización local para el widget de personajes
+            if st.session_state.char_select not in char_opts: 
+                st.session_state.char_select = char_opts[0]
             
-            char_sel = st.selectbox("Protagonista", char_opts, index=char_opts.index(current_char), key="char_select")
+            char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
             
             if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
             elif "--" in char_sel: final_sub = ""
@@ -341,19 +339,19 @@ with st.form("main_form"):
         * **El Guionista (Modo Architect):** Trabaja en SILENCIO al generar. Enriquece tu texto añadiendo detalles sensoriales.
 
         ### 2. Guía Técnica de Cinematografía
-        * **16mm Wide Angle:** Paisajes épicos, Monstruos Gigantes.
+        * **16mm Wide Angle:**  Paisajes épicos, Monstruos Gigantes.
         * **35mm Prime:** Cine clásico, documental.
         * **50mm Lens:** Ojo humano. Sin distorsión.
-        * **85mm / 100mm Macro:** Detalles pequeños (ojos, gotas). Fondo borroso.
-        * **Low Angle:** Poder, Amenaza.
-        * **Dutch Angle:** Terror, Locura.
+        * **85mm / 100mm Macro:**  Detalles pequeños (ojos, gotas). Fondo borroso.
+        * **Low Angle:**  Poder, Amenaza.
+        * **Dutch Angle:**  Terror, Locura.
         """)
 
     # BOTÓN GLOBAL
     st.markdown("---")
     submit_main = st.form_submit_button("✨ GENERAR PROMPT DE VÍDEO (PRO)")
 
-# --- 9. PROCESAMIENTO ---
+# --- 10. PROCESAMIENTO FINAL ---
 if submit_suno:
     if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
     elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
@@ -372,14 +370,12 @@ elif submit_main:
     
     b = PromptBuilder()
     
-    # 1. Cabecera + ANCLAJE
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
     ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
     b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
-    # 2. Narrativa
     narrative = []
     if final_sub: narrative.append(final_sub)
     if final_ward: narrative.append(f"WEARING: {final_ward}")
@@ -408,7 +404,6 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # 3. Cine
     w_shot = st.session_state.shot_select
     w_angle = st.session_state.angle_select
     w_lens = st.session_state.lens_select
