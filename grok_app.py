@@ -12,10 +12,11 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. DATOS Y LISTAS MAESTRAS ---
+# --- 2. DATOS MAESTROS (CONSTANTES) ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
+# Listas Estáticas
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
 DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
@@ -55,10 +56,14 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 3. SANITIZADOR DE ESTADO (EL FIX DEL FLASH ROJO) ---
-# Esta función asegura que las variables existen Y que sus valores son válidos para las listas actuales.
-def sanitize_session_state():
-    # 1. Crear variables si no existen
+# --- 3. GESTIÓN DE ESTADO BLINDADA ---
+
+def initialize_and_validate_state():
+    """
+    Esta función se asegura de que todas las variables existen
+    Y que sus valores son válidos para evitar el 'Red Flash Error'.
+    """
+    # 1. Inicializar si no existen
     defaults = {
         'generated_output': "", 'generated_explanation': "",
         'characters': DEFAULT_CHARACTERS.copy(), 'custom_props': DEFAULT_PROPS.copy(),
@@ -70,11 +75,12 @@ def sanitize_session_state():
         'ar_select': DEMO_ASPECT_RATIOS[0], 'phy_select': "Neutral / Estudio",
         'last_img_name': ""
     }
+    
     for k, v in defaults.items():
         if k not in st.session_state: st.session_state[k] = v
 
-    # 2. VALIDAR Listas (Esto elimina el flash rojo "Value not in options")
-    # Si el valor guardado no está en la lista (por un cambio de versión o bug), lo resetea al default [0]
+    # 2. Validar Listas Estáticas (Anti-Flash)
+    # Si por alguna razón el valor en memoria no coincide con la lista actual, reseteamos.
     validators = [
         ('shot_select', LIST_SHOT_TYPES),
         ('angle_select', LIST_ANGLES),
@@ -83,15 +89,17 @@ def sanitize_session_state():
         ('sty_select', DEMO_STYLES),
         ('env_select', DEMO_ENVIRONMENTS),
         ('ar_select', DEMO_ASPECT_RATIOS),
+        ('ward_select', DEMO_WARDROBE), # Ojo: añadimos este también por seguridad
         ('phy_select', list(PHYSICS_LOGIC.keys()))
     ]
     
-    for key, options_list in validators:
-        if st.session_state[key] not in options_list:
-            st.session_state[key] = options_list[0]
+    for key, valid_options in validators:
+        # Si la key existe en session_state pero su valor NO está en la lista permitida...
+        if key in st.session_state and st.session_state[key] not in valid_options:
+            st.session_state[key] = valid_options[0] # ...reseteamos al primer valor por defecto.
 
-# EJECUTAR SANITIZADOR ANTES DE NADA
-sanitize_session_state()
+# EJECUTAR VALIDACIÓN INMEDIATAMENTE
+initialize_and_validate_state()
 
 # --- 4. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
@@ -237,7 +245,7 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V73)")
+st.title("🎬 Grok Production Studio (V74)")
 
 with st.form("main_form"):
     
@@ -246,11 +254,12 @@ with st.form("main_form"):
     with t1:
         c1, c2 = st.columns(2)
         with c1:
+            # GESTIÓN DINÁMICA DE PERSONAJES (Punto crítico de flash)
             char_opts = ["-- Seleccionar Protagonista --"]
             if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
             char_opts += list(st.session_state.characters.keys())
             
-            # Sanitización local para el widget de personajes
+            # Validación manual de lista dinámica
             if st.session_state.char_select not in char_opts: 
                 st.session_state.char_select = char_opts[0]
             
