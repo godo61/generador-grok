@@ -3,7 +3,7 @@ import re
 import random
 from PIL import Image
 
-# --- 1. CONFIGURACIÓN (OBLIGATORIO) ---
+# --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
 try:
@@ -12,9 +12,11 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. SISTEMA INMUNE (GESTIÓN DE ESTADO) ---
+# --- 2. GESTIÓN DE ESTADO (CALLBACKS) ---
+# Definimos estas funciones ANTES para usarlas como callbacks en los botones.
+# Esto asegura que el texto se guarde antes de ejecutar la lógica.
+
 def safe_state_init():
-    """Inicializa variables si no existen."""
     defaults = {
         'generated_output': "",
         'generated_explanation': "",
@@ -30,16 +32,69 @@ def safe_state_init():
 
 safe_state_init()
 
-# --- 3. DATOS ---
-DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
-DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
-DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
-DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
-
+# DATOS
 LIST_SHOT_TYPES = ["Neutral (Auto)", "Extreme Long Shot (Epic Scale)", "Long Shot (Full Body)", "Medium Shot (Waist Up)", "Close-Up (Face Focus)", "Extreme Close-Up (Macro Detail)"]
 LIST_ANGLES = ["Neutral (Auto)", "Low Angle (Heroic/Ominous)", "High Angle (Vulnerable)", "Dutch Angle (Chaos/Tension)", "Bird's Eye View (Top-Down)", "Drone Aerial View (Establishing)"]
 LIST_LENSES = ["Neutral (Auto)", "16mm Wide Angle (Expansive)", "35mm Prime (Street)", "50mm Lens (Natural)", "85mm f/1.4 (Portrait)", "100mm Macro (Detail)", "Fisheye (Distorted)"]
 DEMO_LIGHTING = ["Neutral (Auto)", "Harsh Golden Hour", "Dramatic Low-Key (Chiaroscuro)", "Soft Overcast (Diffusion)", "Neon City Glow", "Stark Space Sunlight"]
+DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
+
+def apply_smart_look_logic(text):
+    txt = text.lower()
+    res = {
+        'shot': "Medium Shot (Waist Up)", 'angle': "Neutral (Auto)",
+        'lens': "35mm Prime (Street)", 'lit': "Cinematic Lighting", 'sty': "Cinematic Film Still"
+    }
+    if any(x in txt for x in ["transform", "morph", "cambia", "plástico"]):
+        res.update({'lens': "50mm Lens (Natural)", 'sty': "Hyper-realistic VFX Render (Unreal 5)", 'lit': "Dramatic Low-Key (Chiaroscuro)", 'shot': "Close-Up (Face Focus)"})
+    elif any(x in txt for x in ["mamut", "monster", "gigante"]):
+        res.update({'shot': "Extreme Long Shot (Epic Scale)", 'angle': "Low Angle (Heroic/Ominous)", 'lens': "16mm Wide Angle (Expansive)", 'lit': "Harsh Golden Hour"})
+    elif any(x in txt for x in ["run", "correr", "persecución"]):
+        res.update({'shot': "Long Shot (Full Body)", 'angle': "Drone Aerial View", 'lens': "Fisheye (Distorted)", 'sty': "Action Movie Screengrab"})
+    return res
+
+# --- CALLBACKS CLAVE (LA SOLUCIÓN AL TEXTO BORRADO) ---
+def callback_suggest_look():
+    """Se ejecuta al pulsar 'Sugerir Look'. El texto YA está guardado en session_state."""
+    action = st.session_state.get('act_input', "")
+    suggestions = apply_smart_look_logic(action)
+    
+    mappings = [
+        ('shot_select', LIST_SHOT_TYPES, suggestions['shot']),
+        ('angle_select', LIST_ANGLES, suggestions['angle']),
+        ('lens_select', LIST_LENSES, suggestions['lens']),
+        ('lit_select', DEMO_LIGHTING, suggestions['lit']),
+        ('sty_select', DEMO_STYLES, suggestions['sty'])
+    ]
+    
+    for key, options, target in mappings:
+        for opt in options:
+            if target.split('(')[0] in opt:
+                st.session_state[key] = opt
+                break
+    # No hace falta st.rerun(), el callback fuerza el redibujado automático con los nuevos valores.
+
+def callback_reset_scene():
+    st.session_state.act_input = ""
+    st.session_state.generated_output = ""
+    st.session_state.generated_explanation = ""
+    st.session_state.uploader_key += 1
+    # Limpiamos selectores
+    keys = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ward_select', 'phy_select']
+    for k in keys:
+        if k in st.session_state: del st.session_state[k]
+
+def callback_paste_template():
+    # Esta función se llama desde el botón de "Pegar"
+    # Necesitamos leer el valor del selectbox auxiliar, que aún no está en session_state oficial
+    # Así que lo haremos dentro del flujo normal, o usamos un truco de key.
+    # Para simplificar, mantendremos la lógica de pegado en el flujo principal pero con cuidado.
+    pass
+
+# --- 3. DATOS Y LISTAS RESTANTES ---
+DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
+DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
+DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 DEMO_ASPECT_RATIOS = ["16:9 (Landscape)", "21:9 (Cinematic)", "9:16 (Social Vertical)", "4:3 (Classic)", "1:1 (Square)"]
 
 GEM_EXPANSION_PACK = {
@@ -47,7 +102,7 @@ GEM_EXPANSION_PACK = {
     "correr": "sweat and mud on a face contorted in panic, heavy motion blur",
     "chase": "colossal beast breaching the ground, chaotic debris cloud",
     "persecución": "colossal beast breaching the ground, chaotic debris cloud",
-    "transform": "surreal metamorphosis, plastic cracking into organic skin, glowing energy",
+    "transform": "surreal visual metamorphosis, plastic texture cracking and morphing into realistic organic skin",
     "monster": "terrifying subterranean beast, organic textures, massive scale",
     "mamut": "ancient titanic mammoth, matted fur texture, massive tusks",
     "plastic": "shiny synthetic polymer texture, artificial reflection"
@@ -55,9 +110,9 @@ GEM_EXPANSION_PACK = {
 
 NARRATIVE_TEMPLATES = {
     "Libre (Escribir propia)": "",
-    "🎤 Performance Musical": "Close-up on subject singing passionately...",
-    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera...",
-    "🐘 Transformación (Morphing)": "A small plastic toy elephant on a table begins to morph rapidly...",
+    "🎤 Performance Musical": "Close-up on the subject singing passionately. Mouth moves in perfect sync with the audio. Emotions range from intense focus to release.",
+    "🏃 Persecución (Sujeto vs Monstruo)": "The subject is sprinting desperately towards the camera, face contorted in panic. Behind them, a colossal creature is charging, kicking up debris.",
+    "🐘 Transformación (Morphing)": "At second 0, the scene is static. A small plastic toy elephant on a table begins to morph rapidly. The plastic texture cracks and transforms into realistic wrinkled grey skin and fur, growing in size into a real mammoth.",
 }
 
 PHYSICS_LOGIC = {
@@ -70,22 +125,13 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 4. WRAPPER BLINDADO (Try-Except Widget) ---
+# --- 4. WRAPPER BLINDADO (Immune Selectbox) ---
 def immune_selectbox(label, options, key, **kwargs):
-    """
-    Intenta dibujar el selectbox. Si Streamlit falla (Flash Rojo), 
-    captura el error, corrige el estado y dibuja uno por defecto.
-    """
-    # 1. Limpieza preventiva
-    if key in st.session_state:
-        if st.session_state[key] not in options:
-            st.session_state[key] = options[0]
-            
+    if key in st.session_state and st.session_state[key] not in options:
+        st.session_state[key] = options[0]
     try:
-        # 2. Intento de dibujo normal
         return st.selectbox(label, options, key=key, **kwargs)
-    except Exception:
-        # 3. Si falla, forzamos el reset y dibujamos sin key (o con key nueva) para salvar la sesión
+    except:
         st.session_state[key] = options[0]
         return st.selectbox(label, options, index=0, key=f"{key}_rescue_{random.randint(0,9999)}")
 
@@ -94,7 +140,6 @@ def apply_custom_styles(dark_mode=False):
     bg_color = "#0E1117" if dark_mode else "#FFFFFF"
     text_color = "#FAFAFA" if dark_mode else "#31333F"
     tab_bg = "#1E1E24" if dark_mode else "#F0F2F6"
-
     st.markdown(f"""
         <style>
         [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
@@ -105,7 +150,7 @@ def apply_custom_styles(dark_mode=False):
         </style>
     """, unsafe_allow_html=True)
 
-# --- 6. FUNCIONES LÓGICAS ---
+# --- 6. FUNCIONES UTIL ---
 def translate_to_english(text):
     if not text or not str(text).strip(): return ""
     try:
@@ -123,95 +168,30 @@ def detect_ar(image_file):
         return 0
     except: return 0
 
-def apply_smart_look_logic(text):
-    txt = text.lower()
-    res = {
-        'shot': "Medium Shot (Waist Up)",
-        'angle': "Neutral (Auto)",
-        'lens': "35mm Prime (Street)",
-        'lit': "Cinematic Lighting",
-        'sty': "Cinematic Film Still"
-    }
-    if any(x in txt for x in ["transform", "morph", "cambia", "plástico"]):
-        res['lens'] = "50mm Lens (Natural)"
-        res['sty'] = "Hyper-realistic VFX Render (Unreal 5)"
-        res['lit'] = "Dramatic Low-Key (Chiaroscuro)"
-        res['shot'] = "Close-Up (Face Focus)"
-    elif any(x in txt for x in ["mamut", "monster", "gigante"]):
-        res['shot'] = "Extreme Long Shot (Epic Scale)"
-        res['angle'] = "Low Angle (Heroic/Ominous)"
-        res['lens'] = "16mm Wide Angle (Expansive)"
-        res['lit'] = "Harsh Golden Hour"
-    elif any(x in txt for x in ["run", "correr", "persecución"]):
-        res['shot'] = "Long Shot (Full Body)"
-        res['angle'] = "Drone Aerial View"
-        res['lens'] = "Fisheye (Distorted)"
-        res['sty'] = "Action Movie Screengrab"
-    return res
-
-def perform_smart_update():
-    action = st.session_state.get('act_input', "")
-    suggestions = apply_smart_look_logic(action)
-    
-    # Actualización directa de sesión (ahora que no hay Form, esto es seguro)
-    mappings = [
-        ('shot_select', LIST_SHOT_TYPES, suggestions['shot']),
-        ('angle_select', LIST_ANGLES, suggestions['angle']),
-        ('lens_select', LIST_LENSES, suggestions['lens']),
-        ('lit_select', DEMO_LIGHTING, suggestions['lit']),
-        ('sty_select', DEMO_STYLES, suggestions['sty'])
-    ]
-    
-    for key, options, target in mappings:
-        for opt in options:
-            if target.split('(')[0] in opt:
-                st.session_state[key] = opt
-                break
-
-def perform_reset():
-    st.session_state['act_input'] = ""
-    # Borrado de claves para reset limpio
-    keys = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ward_select', 'phy_select']
-    for k in keys:
-        if k in st.session_state: del st.session_state[k]
-    
-    st.session_state['uploader_key'] += 1 
-    st.session_state['generated_output'] = ""
-    st.session_state['generated_explanation'] = ""
-
-# --- 7. BUILDER ---
 class PromptBuilder:
     def __init__(self):
         self.parts = []
         self.explanation = []
-    
     def add(self, text, explain=None):
         if text and text.strip() and text.strip() != ".":
             self.parts.append(text)
             if explain: self.explanation.append(explain)
-    
     def expand_flavor(self, text):
         flavors = []
         txt = text.lower()
         for k, v in GEM_EXPANSION_PACK.items():
             if k in txt: flavors.append(v)
         return ". ".join(flavors)
-
     def get_result(self): return "\n\n".join(self.parts)
 
-# --- 8. INTERFAZ ---
+# --- 7. INTERFAZ ---
 with st.sidebar:
     st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
-    if st.button("🎲 Sugerir Look (Aplicar)"):
-        perform_smart_update()
-        st.toast("✨ Selectores actualizados.")
-        st.rerun()
-
-    if st.button("🗑️ Nueva Escena"):
-        perform_reset()
-        st.rerun()
+    # BOTÓN CON CALLBACK (SOLUCIÓN): Al usar on_click, Streamlit guarda el texto antes de ejecutar.
+    st.button("🎲 Sugerir Look (Aplicar)", on_click=callback_suggest_look)
+    st.button("🗑️ Nueva Escena", on_click=callback_reset_scene)
 
     st.markdown("---")
     st.header("🖼️ Referencias")
@@ -228,23 +208,18 @@ with st.sidebar:
             
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
-# --- 9. MAIN ---
-st.title("🎬 Grok Production Studio (V84 - Stable)")
-
-# NOTA: HE ELIMINADO st.form A PROPÓSITO PARA ESTABILIZAR EL ESTADO.
-# Los cambios ahora son instantáneos, lo que evita conflictos de memoria.
+# --- 8. MAIN ---
+st.title("🎬 Grok Production Studio (V85)")
 
 t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
 
 with t1:
     c1, c2 = st.columns(2)
     with c1:
-        # Lista dinámica
         char_opts = ["-- Seleccionar Protagonista --"]
         if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
         char_opts += list(st.session_state.characters.keys())
         
-        # Widget Inmune
         char_sel = immune_selectbox("Protagonista", char_opts, key="char_select")
         
         if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
@@ -256,15 +231,16 @@ with t1:
 
     col_tmpl, col_btn = st.columns([3, 1])
     with col_tmpl:
-        tpl_opts = ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys())
-        tpl = immune_selectbox("Plantilla Rápida", tpl_opts, key="tpl_select")
+        # Selectbox temporal para la plantilla
+        tpl_sel = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()), key="tpl_temp")
     with col_btn:
         if st.button("📥 Pegar"):
-            if tpl != "Seleccionar...":
-                st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
+            if tpl_sel != "Seleccionar...":
+                st.session_state.act_input = NARRATIVE_TEMPLATES[tpl_sel]
                 st.rerun()
 
     st.markdown("##### 📜 Descripción de la Acción")
+    # TEXT AREA VINCULADA AL ESTADO. El valor persiste gracias a los callbacks de los botones.
     current_text_input = st.text_area("Describe la escena:", height=100, key="act_input")
 
 with t2:
@@ -309,7 +285,6 @@ with t4:
 
 with t5:
     st.subheader("🎹 Suno AI (Generador Musical)")
-    
     sc1, sc2 = st.columns(2)
     with sc1:
         s_genre = st.text_input("Género (Ej: Cinematic Rock)")
@@ -321,16 +296,13 @@ with t5:
     s_lyrics = st.text_area("Letra / Tema", placeholder="Describe el tema...")
     
     if st.button("🎵 Generar Solo Música (Suno)"):
-        # Lógica Suno
         if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
         elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
         else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
-        
         tags = []
         if s_inst: tags.append("[Instrumental]")
         if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
         if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
-        
         st.info(f"📋 **Copia esto en Suno:**\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}\n**Structure Note:** {suno_struct}")
 
     st.markdown("---")
@@ -340,10 +312,9 @@ with t6:
     st.header("📘 Manual Maestro de Grok Studio")
     st.markdown("Guía rápida: Usa el botón 'Sugerir Look' para configurar la cámara automáticamente.")
 
-# BOTÓN GLOBAL (Ahora es un botón normal, no un form_submit)
 st.markdown("---")
+# BOTÓN DE GENERACIÓN FINAL
 if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
-    
     raw_action = current_text_input if current_text_input else st.session_state.get('act_input', "")
     eng_action = translate_to_english(raw_action)
     
@@ -363,7 +334,6 @@ if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     if eng_action:
         is_morph = "transform" in eng_action.lower() or "morph" in eng_action.lower()
         header = "VISUAL EFFECTS SEQUENCE (MORPHING)" if is_morph else "VISCERAL ACTION SEQUENCE"
-        
         flavor = ""
         if enhance_mode:
             flavor = b.expand_flavor(eng_action)
@@ -392,7 +362,6 @@ if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     
     auto_look = apply_smart_look_logic(eng_action) if enhance_mode else {}
     
-    # Lógica híbrida
     final_shot = w_shot if "Neutral" not in w_shot else auto_look.get('shot', "")
     final_angle = w_angle if "Neutral" not in w_angle else auto_look.get('angle', "")
     final_lens = w_lens if "Neutral" not in w_lens else auto_look.get('lens', "")
@@ -417,13 +386,9 @@ if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     st.session_state.generated_output = b.get_result()
     st.session_state.generated_explanation = "\n".join(b.explanation)
 
-# --- 10. MOSTRAR RESULTADO ---
-output = st.session_state.get("generated_output", "")
-explanation = st.session_state.get("generated_explanation", "")
-
-if output:
+if st.session_state.generated_output:
     st.markdown("---")
-    if explanation:
-        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{explanation}</div>', unsafe_allow_html=True)
+    if st.session_state.generated_explanation:
+        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
-    st.code(output, language="text")
+    st.code(st.session_state.generated_output, language="text")
