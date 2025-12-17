@@ -3,7 +3,7 @@ import re
 import random
 from PIL import Image
 
-# --- 1. CONFIGURACIÓN ---
+# --- 1. CONFIGURACIÓN (OBLIGATORIO) ---
 st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
 try:
@@ -12,35 +12,27 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. LA SOLUCIÓN DEFINITIVA (DYNAMIC KEY WRAPPER) ---
-def dynamic_selectbox(label, options, base_key, **kwargs):
-    """
-    Crea un selectbox cuya 'key' cambia si las 'options' cambian.
-    Esto evita al 100% el error 'Value not in options' porque si la lista cambia,
-    Streamlit trata el widget como uno nuevo y lo inicia limpio en el índice 0.
-    """
-    # Creamos una firma única basada en las opciones disponibles
-    options_hash = str(hash(tuple(options)))
-    
-    # La key real combina el nombre base con el hash de las opciones
-    safe_key = f"{base_key}_{options_hash}"
-    
-    # Guardamos la selección en una variable persistente 'shadow' para intentar mantenerla
-    # si las opciones no han cambiado radicalmente, o usar el índice 0 si es un widget nuevo.
-    
-    # Renderizamos el widget con la key dinámica
-    selection = st.selectbox(label, options, key=safe_key, **kwargs)
-    
-    # Guardamos el valor limpio en el estado global para que el resto de la app lo encuentre fácil
-    st.session_state[base_key] = selection
-    return selection
+# --- 2. SISTEMA INMUNE (GESTIÓN DE ESTADO) ---
+def safe_state_init():
+    """Inicializa variables si no existen."""
+    defaults = {
+        'generated_output': "",
+        'generated_explanation': "",
+        'characters': {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."},
+        'custom_props': {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"},
+        'uploader_key': 0,
+        'act_input': "",
+        'last_img_name': ""
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-# --- 3. DATOS MAESTROS ---
-DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
-DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
+safe_state_init()
 
+# --- 3. DATOS ---
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
-DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
+DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
 DEMO_WARDROBE = ["✏️ Custom...", "Short-sleeve grey t-shirt", "Short-sleeve tactical shirt", "Long-sleeve denim shirt", "NASA EVA Spacesuit", "Tactical Wetsuit", "Elegant Suit"]
 DEMO_PROPS_LIST = ["None", "✏️ Custom...", "🛶 Kayak Paddle", "🎸 Electric Guitar", "🔫 Blaster", "📱 Datapad", "🔦 Flashlight"]
 
@@ -78,15 +70,24 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 4. INICIALIZACIÓN BÁSICA ---
-# Solo inicializamos lo que NO es un widget selectbox (ellos se autogestionan ahora)
-if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
-if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
-if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
-if 'act_input' not in st.session_state: st.session_state.act_input = ""
-if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
-if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
-if 'last_img_name' not in st.session_state: st.session_state.last_img_name = ""
+# --- 4. WRAPPER BLINDADO (Try-Except Widget) ---
+def immune_selectbox(label, options, key, **kwargs):
+    """
+    Intenta dibujar el selectbox. Si Streamlit falla (Flash Rojo), 
+    captura el error, corrige el estado y dibuja uno por defecto.
+    """
+    # 1. Limpieza preventiva
+    if key in st.session_state:
+        if st.session_state[key] not in options:
+            st.session_state[key] = options[0]
+            
+    try:
+        # 2. Intento de dibujo normal
+        return st.selectbox(label, options, key=key, **kwargs)
+    except Exception:
+        # 3. Si falla, forzamos el reset y dibujamos sin key (o con key nueva) para salvar la sesión
+        st.session_state[key] = options[0]
+        return st.selectbox(label, options, index=0, key=f"{key}_rescue_{random.randint(0,9999)}")
 
 # --- 5. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
@@ -152,35 +153,31 @@ def perform_smart_update():
     action = st.session_state.get('act_input', "")
     suggestions = apply_smart_look_logic(action)
     
-    # Actualizamos las variables base. 
-    # Al renderizarse de nuevo, dynamic_selectbox usará estos valores si las opciones coinciden.
-    # NOTA: En la arquitectura dynamic_selectbox, no podemos forzar el índice desde fuera fácilmente
-    # sin recargar la página, pero guardamos la intención en session_state para la próxima carga.
+    # Actualización directa de sesión (ahora que no hay Form, esto es seguro)
+    mappings = [
+        ('shot_select', LIST_SHOT_TYPES, suggestions['shot']),
+        ('angle_select', LIST_ANGLES, suggestions['angle']),
+        ('lens_select', LIST_LENSES, suggestions['lens']),
+        ('lit_select', DEMO_LIGHTING, suggestions['lit']),
+        ('sty_select', DEMO_STYLES, suggestions['sty'])
+    ]
     
-    st.session_state['shot_select_override'] = suggestions['shot']
-    st.session_state['angle_select_override'] = suggestions['angle']
-    st.session_state['lens_select_override'] = suggestions['lens']
-    st.session_state['lit_select_override'] = suggestions['lit']
-    st.session_state['sty_select_override'] = suggestions['sty']
-
-def get_override_index(key, options):
-    # Función auxiliar para encontrar el índice sugerido por el botón "Sugerir"
-    override_key = f"{key}_override"
-    if override_key in st.session_state:
-        target = st.session_state[override_key]
-        for idx, opt in enumerate(options):
+    for key, options, target in mappings:
+        for opt in options:
             if target.split('(')[0] in opt:
-                del st.session_state[override_key] # Consumir el override
-                return idx
-    return 0
+                st.session_state[key] = opt
+                break
 
 def perform_reset():
     st.session_state['act_input'] = ""
-    # Simplemente limpiamos overrides y outputs
-    keys_to_clean = ['generated_output', 'generated_explanation', 'shot_select_override']
-    for k in keys_to_clean:
+    # Borrado de claves para reset limpio
+    keys = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ward_select', 'phy_select']
+    for k in keys:
         if k in st.session_state: del st.session_state[k]
+    
     st.session_state['uploader_key'] += 1 
+    st.session_state['generated_output'] = ""
+    st.session_state['generated_explanation'] = ""
 
 # --- 7. BUILDER ---
 class PromptBuilder:
@@ -209,7 +206,7 @@ with st.sidebar:
     
     if st.button("🎲 Sugerir Look (Aplicar)"):
         perform_smart_update()
-        st.toast("✨ Configuración aplicada. La interfaz se actualizará.")
+        st.toast("✨ Selectores actualizados.")
         st.rerun()
 
     if st.button("🗑️ Nueva Escena"):
@@ -225,156 +222,128 @@ with st.sidebar:
         st.image(uploaded_file, caption="Ref")
         if 'last_img_name' not in st.session_state or st.session_state.last_img_name != uploaded_file.name:
             ridx = detect_ar(uploaded_file)
-            # Guardamos un override para que el dynamic_selectbox lo pille
-            st.session_state['ar_select_override'] = DEMO_ASPECT_RATIOS[ridx]
+            st.session_state['ar_select'] = DEMO_ASPECT_RATIOS[ridx]
             st.session_state.last_img_name = uploaded_file.name
             st.rerun()
             
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 9. MAIN ---
-st.title("🎬 Grok Production Studio (V83)")
+st.title("🎬 Grok Production Studio (V84 - Stable)")
 
-with st.form("main_form"):
+# NOTA: HE ELIMINADO st.form A PROPÓSITO PARA ESTABILIZAR EL ESTADO.
+# Los cambios ahora son instantáneos, lo que evita conflictos de memoria.
+
+t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
+
+with t1:
+    c1, c2 = st.columns(2)
+    with c1:
+        # Lista dinámica
+        char_opts = ["-- Seleccionar Protagonista --"]
+        if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
+        char_opts += list(st.session_state.characters.keys())
+        
+        # Widget Inmune
+        char_sel = immune_selectbox("Protagonista", char_opts, key="char_select")
+        
+        if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
+        elif "--" in char_sel: final_sub = ""
+        else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
+
+    with c2:
+        enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
+
+    col_tmpl, col_btn = st.columns([3, 1])
+    with col_tmpl:
+        tpl_opts = ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys())
+        tpl = immune_selectbox("Plantilla Rápida", tpl_opts, key="tpl_select")
+    with col_btn:
+        if st.button("📥 Pegar"):
+            if tpl != "Seleccionar...":
+                st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
+                st.rerun()
+
+    st.markdown("##### 📜 Descripción de la Acción")
+    current_text_input = st.text_area("Describe la escena:", height=100, key="act_input")
+
+with t2:
+    c1, c2 = st.columns(2)
+    with c1:
+        e_sel = immune_selectbox("Entorno", DEMO_ENVIRONMENTS, key="env_select")
+        final_env = st.text_input("Custom Env", key="env_cust") if "Custom" in e_sel else e_sel
+        
+        all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS_LIST[2:]
+        prop_sel = immune_selectbox("Objeto", all_props, key="prop_select")
+        
+        if prop_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[prop_sel]
+        elif "Custom" in prop_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
+        elif "None" not in prop_sel: final_prop = prop_sel
+        else: final_prop = ""
+
+    with c2:
+        st.info("💡 Consejo: Elige manga corta/larga explícitamente.")
+        ward_sel = immune_selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
+        if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
+        else: final_ward = ward_sel
+
+with t3:
+    c1, c2 = st.columns(2)
+    with c1: 
+        phy_med = immune_selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="phy_select")
+    with c2: 
+        phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
+
+with t4:
+    st.info("💡 Usa 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        immune_selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select")
+        immune_selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
+    with c2:
+        immune_selectbox("2. Ángulo", LIST_ANGLES, key="angle_select")
+        immune_selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select")
+    with c3:
+        immune_selectbox("3. Lente", LIST_LENSES, key="lens_select")
+        immune_selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
+
+with t5:
+    st.subheader("🎹 Suno AI (Generador Musical)")
     
-    t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        s_genre = st.text_input("Género (Ej: Cinematic Rock)")
+        s_inst = st.toggle("🎻 Instrumental")
+    with sc2:
+        s_mood = st.text_input("Mood (Ej: Epic, Scary)")
+        s_dur = st.slider("Duración (Segundos)", 10, 300, 30)
 
-    with t1:
-        c1, c2 = st.columns(2)
-        with c1:
-            # Lista dinámica
-            char_opts = ["-- Seleccionar Protagonista --"]
-            if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
-            char_opts += list(st.session_state.characters.keys())
-            
-            # USO DE DYNAMIC SELECTBOX
-            char_sel = dynamic_selectbox("Protagonista", char_opts, "char_select")
-            
-            if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
-            elif "--" in char_sel: final_sub = ""
-            else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
-
-        with c2:
-            enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
-
-        col_tmpl, col_btn = st.columns([3, 1])
-        with col_tmpl:
-            tpl_opts = ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys())
-            tpl = dynamic_selectbox("Plantilla Rápida", tpl_opts, "tpl_select")
-        with col_btn:
-            if st.form_submit_button("📥 Pegar"):
-                if tpl != "Seleccionar...":
-                    st.session_state['act_input'] = NARRATIVE_TEMPLATES[tpl]
-                    st.rerun()
-
-        st.markdown("##### 📜 Descripción de la Acción")
-        current_text_input = st.text_area("Describe la escena:", height=100, key="act_input")
-
-    with t2:
-        c1, c2 = st.columns(2)
-        with c1:
-            e_sel = dynamic_selectbox("Entorno", DEMO_ENVIRONMENTS, "env_select")
-            final_env = st.text_input("Custom Env", key="env_cust") if "Custom" in e_sel else e_sel
-            
-            all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS_LIST[2:]
-            prop_sel = dynamic_selectbox("Objeto", all_props, "prop_select")
-            
-            if prop_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[prop_sel]
-            elif "Custom" in prop_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
-            elif "None" not in prop_sel: final_prop = prop_sel
-            else: final_prop = ""
-
-        with c2:
-            st.info("💡 Consejo: Elige manga corta/larga explícitamente.")
-            ward_sel = dynamic_selectbox("Vestuario", DEMO_WARDROBE, "ward_select")
-            if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
-            else: final_ward = ward_sel
-
-    with t3:
-        c1, c2 = st.columns(2)
-        with c1: 
-            phy_med = dynamic_selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), "phy_select")
-        with c2: 
-            phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
-
-    with t4:
-        st.info("💡 Usa 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            # Para Cinematografía aplicamos la lógica de overrides (Sugestión)
-            idx_shot = get_override_index('shot_select', LIST_SHOT_TYPES)
-            dynamic_selectbox("1. Encuadre", LIST_SHOT_TYPES, "shot_select", index=idx_shot, help="Extreme Long: Paisajes. Close-Up: Caras.")
-            
-            idx_ar = get_override_index('ar_select', DEMO_ASPECT_RATIOS)
-            dynamic_selectbox("4. Formato", DEMO_ASPECT_RATIOS, "ar_select", index=idx_ar)
-            
-        with c2:
-            idx_ang = get_override_index('angle_select', LIST_ANGLES)
-            dynamic_selectbox("2. Ángulo", LIST_ANGLES, "angle_select", index=idx_ang, help="Low: Poder. High: Debilidad.")
-            
-            idx_lit = get_override_index('lit_select', DEMO_LIGHTING)
-            dynamic_selectbox("5. Iluminación", DEMO_LIGHTING, "lit_select", index=idx_lit)
-            
-        with c3:
-            idx_len = get_override_index('lens_select', LIST_LENSES)
-            dynamic_selectbox("3. Lente", LIST_LENSES, "lens_select", index=idx_len, help="16mm: Epico. 85mm: Retrato.")
-            
-            idx_sty = get_override_index('sty_select', DEMO_STYLES)
-            dynamic_selectbox("6. Estilo", DEMO_STYLES, "sty_select", index=idx_sty)
-
-    with t5:
-        st.subheader("🎹 Suno AI (Generador Musical)")
+    s_lyrics = st.text_area("Letra / Tema", placeholder="Describe el tema...")
+    
+    if st.button("🎵 Generar Solo Música (Suno)"):
+        # Lógica Suno
+        if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
+        elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
+        else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
         
-        sc1, sc2 = st.columns(2)
-        with sc1:
-            s_genre = st.text_input("Género (Ej: Cinematic Rock)")
-            s_inst = st.toggle("🎻 Instrumental")
-        with sc2:
-            s_mood = st.text_input("Mood (Ej: Epic, Scary)")
-            s_dur = st.slider("Duración (Segundos)", 10, 300, 30, help="Define estructura. <30s = Jingle/Intro.")
-
-        s_lyrics = st.text_area("Letra / Tema", placeholder="Describe el tema o pega la letra...")
+        tags = []
+        if s_inst: tags.append("[Instrumental]")
+        if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
+        if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
         
-        submit_suno = st.form_submit_button("🎵 Generar Solo Música (Suno)")
-        
-        st.markdown("---")
-        st.caption("Configuración Video (Lip-Sync)")
-        has_audio = st.checkbox("✅ Activar Lip-Sync (Audio externo)")
+        st.info(f"📋 **Copia esto en Suno:**\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}\n**Structure Note:** {suno_struct}")
 
-    with t6:
-        st.header("📘 Manual Maestro de Grok Studio")
-        st.markdown("""
-        ### 1. Filosofía de los Dos Cerebros
-        * **El Director (Botón 'Sugerir Look'):** Analiza tu texto y ajusta los controles de cámara (Lente, Ángulo, Luz) ANTES de generar.
-        * **El Guionista (Modo Architect):** Trabaja en SILENCIO al generar. Enriquece tu texto añadiendo detalles sensoriales.
-
-        ### 2. Guía Técnica de Cinematografía
-        * **16mm Wide Angle:**  Paisajes épicos, Monstruos Gigantes.
-        * **35mm Prime:** Cine clásico, documental.
-        * **50mm Lens:** Ojo humano. Sin distorsión.
-        * **85mm / 100mm Macro:**  Detalles pequeños (ojos, gotas). Fondo borroso.
-        * **Low Angle:**  Poder, Amenaza.
-        * **Dutch Angle:**  Terror, Locura.
-        """)
-
-    # BOTÓN GLOBAL
     st.markdown("---")
-    submit_main = st.form_submit_button("✨ GENERAR PROMPT DE VÍDEO (PRO)")
+    has_audio = st.checkbox("✅ Activar Lip-Sync (Audio externo)")
 
-# --- 10. PROCESAMIENTO FINAL ---
-if submit_suno:
-    if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
-    elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
-    else: suno_struct = "[Intro] [Verse] [Chorus] [Bridge] [Outro]"
-    
-    tags = []
-    if s_inst: tags.append("[Instrumental]")
-    if s_genre: tags.append(f"[{translate_to_english(s_genre)}]")
-    if s_mood: tags.append(f"[{translate_to_english(s_mood)}]")
-    
-    st.info(f"📋 **Copia esto en Suno:**\n\n**Style:** {' '.join(tags)}\n**Lyrics:** {translate_to_english(s_lyrics) if s_lyrics else '[Instrumental]'}\n**Structure Note:** {suno_struct}")
+with t6:
+    st.header("📘 Manual Maestro de Grok Studio")
+    st.markdown("Guía rápida: Usa el botón 'Sugerir Look' para configurar la cámara automáticamente.")
 
-elif submit_main:
+# BOTÓN GLOBAL (Ahora es un botón normal, no un form_submit)
+st.markdown("---")
+if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
+    
     raw_action = current_text_input if current_text_input else st.session_state.get('act_input', "")
     eng_action = translate_to_english(raw_action)
     
@@ -414,8 +383,7 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # Recuperación segura desde session_state (que fue actualizado por dynamic_selectbox)
-    # Si no existe (primer run), usamos defaults.
+    # Recuperación segura
     w_shot = st.session_state.get('shot_select', LIST_SHOT_TYPES[0])
     w_angle = st.session_state.get('angle_select', LIST_ANGLES[0])
     w_lens = st.session_state.get('lens_select', LIST_LENSES[0])
@@ -449,7 +417,7 @@ elif submit_main:
     st.session_state.generated_output = b.get_result()
     st.session_state.generated_explanation = "\n".join(b.explanation)
 
-# --- 11. MOSTRAR RESULTADO ---
+# --- 10. MOSTRAR RESULTADO ---
 output = st.session_state.get("generated_output", "")
 explanation = st.session_state.get("generated_explanation", "")
 
