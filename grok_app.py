@@ -3,61 +3,20 @@ import re
 import random
 from PIL import Image
 
-# --- 1. CONFIGURACIÓN E IMPORTACIONES SEGURAS ---
-st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
-
+# --- 1. CONFIGURACIÓN (SIEMPRE LO PRIMERO) ---
 try:
     from deep_translator import GoogleTranslator
     TRANSLATOR_AVAILABLE = True
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. HIGIENIZADOR DE ESTADO (SOLUCIÓN AL FLASH ROJO) ---
-# Esto se ejecuta antes que nada para asegurar que la memoria es válida.
-def sanitize_state():
-    # Diccionario de variables críticas y sus valores por defecto
-    required_keys = {
-        'generated_output': "",
-        'generated_explanation': "",
-        'act_input': "",
-        'uploader_key': 0,
-        'char_select': "-- Seleccionar Protagonista --",
-        # Listas vacías si fallan
-        'history': [],
-    }
-    
-    for key, default in required_keys.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+st.set_page_config(page_title="Grok Production Studio", layout="wide", page_icon="🎬")
 
-    # Limpiar posibles residuos de versiones anteriores que causan conflictos
-    if 'shot_select' not in st.session_state: 
-        st.session_state['shot_select'] = "Neutral (Auto)" 
-    
-sanitize_state()
-
-# --- 3. ESTILOS ---
-def apply_custom_styles(dark_mode=False):
-    bg_color = "#0E1117" if dark_mode else "#FFFFFF"
-    text_color = "#FAFAFA" if dark_mode else "#31333F"
-    tab_bg = "#1E1E24" if dark_mode else "#F0F2F6"
-
-    st.markdown(f"""
-        <style>
-        [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
-        [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
-        textarea {{ font-size: 1.1rem !important; font-family: monospace !important; border-left: 5px solid #FF4B4B !important; }}
-        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
-        .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; color: #EEE; font-style: italic; }}
-        .stButton button {{ width: 100%; }}
-        </style>
-    """, unsafe_allow_html=True)
-
-# --- 4. DATOS MAESTROS ---
+# --- 2. DATOS Y LISTAS (DEFINIDOS ANTES DE USARSE) ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
-# Listas
+# Listas Visuales
 DEMO_STYLES = ["Neutral (Auto)", "Cinematic Film Still (Kodak Portra 800)", "Hyper-realistic VFX Render (Unreal 5)", "National Geographic Wildlife Style", "Gritty Documentary Footage", "Action Movie Screengrab", "Cyberpunk Digital Art", "Vintage VHS 90s"]
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
 DEMO_WARDROBE = [
@@ -106,30 +65,58 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 5. INICIALIZACIÓN DE ESTADO ---
-# Inicializamos el resto de variables que no son críticas para el arranque
-if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
-if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
+# --- 3. INICIALIZACIÓN DE ESTADO (EL FIX DEL FLASH ROJO) ---
+# Se ejecuta ANTES de pintar cualquier widget para evitar errores de referencia.
+def init_session_state():
+    defaults = {
+        'generated_output': "", 
+        'generated_explanation': "",
+        'characters': DEFAULT_CHARACTERS.copy(), 
+        'custom_props': DEFAULT_PROPS.copy(),
+        'uploader_key': 0, 
+        'act_input': "",
+        'char_select': "-- Seleccionar Protagonista --",
+        'shot_select': LIST_SHOT_TYPES[0], 
+        'angle_select': LIST_ANGLES[0],
+        'lens_select': LIST_LENSES[0], 
+        'lit_select': DEMO_LIGHTING[0],
+        'sty_select': DEMO_STYLES[0], 
+        'env_select': DEMO_ENVIRONMENTS[0],
+        'ar_select': DEMO_ASPECT_RATIOS[0], 
+        'phy_select': "Neutral / Estudio",
+        'last_img_name': ""
+    }
+    
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-# Inicialización de widgets
-default_vars = {
-    'shot_select': LIST_SHOT_TYPES[0], 'angle_select': LIST_ANGLES[0],
-    'lens_select': LIST_LENSES[0], 'lit_select': DEMO_LIGHTING[0],
-    'sty_select': DEMO_STYLES[0], 'env_select': DEMO_ENVIRONMENTS[0],
-    'ar_select': DEMO_ASPECT_RATIOS[0], 'phy_select': "Neutral / Estudio",
-    'last_img_name': ""
-}
-for k, v in default_vars.items():
-    if k not in st.session_state: st.session_state[k] = v
+init_session_state()
 
-# --- 6. FUNCIONES ---
+# --- 4. ESTILOS ---
+def apply_custom_styles(dark_mode=False):
+    bg_color = "#0E1117" if dark_mode else "#FFFFFF"
+    text_color = "#FAFAFA" if dark_mode else "#31333F"
+    tab_bg = "#1E1E24" if dark_mode else "#F0F2F6"
+
+    st.markdown(f"""
+        <style>
+        [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; color: {text_color}; }}
+        [data-testid="stSidebar"] {{ background-color: {tab_bg}; }}
+        textarea {{ font-size: 1.1rem !important; font-family: monospace !important; border-left: 5px solid #FF4B4B !important; }}
+        .big-warning {{ background-color: #FF4B4B20; border: 1px solid #FF4B4B; padding: 15px; border-radius: 5px; margin-bottom: 10px; }}
+        .strategy-box {{ background-color: #262730; border-left: 5px solid #00AA00; padding: 15px; border-radius: 5px; margin-top: 10px; color: #EEE; font-style: italic; }}
+        .stButton button {{ width: 100%; }}
+        </style>
+    """, unsafe_allow_html=True)
+
+# --- 5. FUNCIONES LÓGICAS ---
 def translate_to_english(text):
     if not text or not str(text).strip(): return ""
-    try:
-        if TRANSLATOR_AVAILABLE:
-            return GoogleTranslator(source='auto', target='en').translate(str(text))
-        return str(text)
-    except: return str(text) # Fallback silencioso
+    if TRANSLATOR_AVAILABLE:
+        try: return GoogleTranslator(source='auto', target='en').translate(str(text))
+        except: return str(text)
+    return str(text)
 
 def detect_ar(image_file):
     try:
@@ -166,6 +153,7 @@ def apply_smart_look_logic(text):
         res['angle'] = "Drone Aerial View"
         res['lens'] = "Fisheye (Distorted)"
         res['sty'] = "Action Movie Screengrab"
+        
     return res
 
 def perform_smart_update():
@@ -201,7 +189,7 @@ def perform_reset():
     st.session_state['generated_output'] = ""
     st.session_state['generated_explanation'] = ""
 
-# --- 7. BUILDER ---
+# --- 6. BUILDER ---
 class PromptBuilder:
     def __init__(self):
         self.parts = []
@@ -221,7 +209,7 @@ class PromptBuilder:
 
     def get_result(self): return "\n\n".join(self.parts)
 
-# --- 8. INTERFAZ ---
+# --- 7. INTERFAZ ---
 with st.sidebar:
     st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
@@ -250,7 +238,7 @@ with st.sidebar:
             
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
-# --- 9. MAIN ---
+# --- 8. MAIN ---
 st.title("🎬 Grok Production Studio (V72)")
 
 with st.form("main_form"):
@@ -264,8 +252,11 @@ with st.form("main_form"):
             if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
             char_opts += list(st.session_state.characters.keys())
             
-            if st.session_state.char_select not in char_opts: st.session_state.char_select = char_opts[0]
-            char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
+            # Verificación extra de seguridad para selectbox
+            current_char = st.session_state.char_select
+            if current_char not in char_opts: current_char = char_opts[0]
+            
+            char_sel = st.selectbox("Protagonista", char_opts, index=char_opts.index(current_char), key="char_select")
             
             if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
             elif "--" in char_sel: final_sub = ""
@@ -353,7 +344,7 @@ with st.form("main_form"):
         * **16mm Wide Angle:** Paisajes épicos, Monstruos Gigantes.
         * **35mm Prime:** Cine clásico, documental.
         * **50mm Lens:** Ojo humano. Sin distorsión.
-        * **85mm / 100mm Macro:** Detalles pequeños. Fondo borroso.
+        * **85mm / 100mm Macro:** Detalles pequeños (ojos, gotas). Fondo borroso.
         * **Low Angle:** Poder, Amenaza.
         * **Dutch Angle:** Terror, Locura.
         """)
@@ -362,7 +353,7 @@ with st.form("main_form"):
     st.markdown("---")
     submit_main = st.form_submit_button("✨ GENERAR PROMPT DE VÍDEO (PRO)")
 
-# --- 10. PROCESAMIENTO FINAL ---
+# --- 9. PROCESAMIENTO ---
 if submit_suno:
     if s_dur < 15: suno_struct = "[Intro] [Outro] [Jingle]"
     elif s_dur < 45: suno_struct = "[Intro] [Verse] [Outro]"
@@ -381,12 +372,14 @@ elif submit_main:
     
     b = PromptBuilder()
     
+    # 1. Cabecera + ANCLAJE
     if uploaded_file: b.add(f"Start Frame: '{uploaded_file.name}'", "✅ Img2Vid")
     if uploaded_end: b.add(f"End Frame: '{uploaded_end.name}'")
     
     ward_anchor = f" ENSURE SUBJECT KEEPS WEARING: {final_ward}" if final_ward else ""
     b.add(f"Maintain strict visual consistency with source.{ward_anchor}", "🔒 Anclaje de Ropa")
     
+    # 2. Narrativa
     narrative = []
     if final_sub: narrative.append(final_sub)
     if final_ward: narrative.append(f"WEARING: {final_ward}")
@@ -415,7 +408,7 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # CINE
+    # 3. Cine
     w_shot = st.session_state.shot_select
     w_angle = st.session_state.angle_select
     w_lens = st.session_state.lens_select
