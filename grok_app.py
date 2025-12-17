@@ -12,7 +12,19 @@ try:
 except ImportError:
     TRANSLATOR_AVAILABLE = False
 
-# --- 2. DATOS MAESTROS ---
+# --- 2. EL ARMA SECRETA (NUKE CORRUPTED STATE) ---
+def nuke_corrupted_state(key, options):
+    """
+    Verifica si la memoria de Streamlit tiene basura para esta clave.
+    Si el valor guardado NO está en las opciones actuales, BORRA la clave.
+    Esto obliga a Streamlit a reiniciar el widget limpiamente sin error rojo.
+    """
+    if key in st.session_state:
+        current_val = st.session_state[key]
+        if current_val not in options:
+            del st.session_state[key] # <--- AQUÍ ESTÁ LA MAGIA (Borrado total)
+
+# --- 3. DATOS MAESTROS ---
 DEFAULT_CHARACTERS = {"TON (Base)": "striking male figure...", "FREYA (Base)": "statuesque female survivor..."}
 DEFAULT_PROPS = {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"}
 
@@ -55,32 +67,13 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 3. GESTIÓN DE ESTADO (INICIALIZACIÓN BÁSICA) ---
+# --- 4. INICIALIZACIÓN BÁSICA ---
 if 'characters' not in st.session_state: st.session_state.characters = DEFAULT_CHARACTERS.copy()
 if 'custom_props' not in st.session_state: st.session_state.custom_props = DEFAULT_PROPS.copy()
 if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
 if 'act_input' not in st.session_state: st.session_state.act_input = ""
 if 'generated_output' not in st.session_state: st.session_state.generated_output = ""
 if 'generated_explanation' not in st.session_state: st.session_state.generated_explanation = ""
-
-# --- 4. FUNCIÓN NUCLEAR (GET SAFE INDEX) ---
-def get_safe_index(key, options):
-    """
-    Calcula el índice seguro ANTES de renderizar el widget.
-    Si el valor en memoria no está en la lista 'options', devuelve 0.
-    Esto evita que Streamlit intente renderizar un estado inválido.
-    """
-    if key not in st.session_state:
-        return 0
-    
-    current_value = st.session_state[key]
-    try:
-        return options.index(current_value)
-    except ValueError:
-        # El valor guardado ya no existe en la lista (Causa del Flash)
-        # Devolvemos 0 y actualizamos silenciosamente el estado
-        st.session_state[key] = options[0]
-        return 0
 
 # --- 5. ESTILOS ---
 def apply_custom_styles(dark_mode=False):
@@ -169,7 +162,7 @@ def perform_smart_update():
 
 def perform_reset():
     st.session_state['act_input'] = ""
-    # Borrado radical para reiniciar índices
+    # Borrado radical
     keys_to_kill = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ar_select', 'ward_select', 'phy_select']
     for k in keys_to_kill:
         if k in st.session_state: del st.session_state[k]
@@ -228,7 +221,7 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 9. MAIN ---
-st.title("🎬 Grok Production Studio (V79)")
+st.title("🎬 Grok Production Studio (V80)")
 
 with st.form("main_form"):
     
@@ -242,16 +235,14 @@ with st.form("main_form"):
             if uploaded_file: char_opts.insert(1, "📷 Sujeto de la Foto")
             char_opts += list(st.session_state.characters.keys())
             
-            # --- USO DE ÍNDICE SEGURO (NUCLEAR OPTION) ---
-            # Pasamos el index explícito. Esto nunca falla.
-            idx_char = get_safe_index('char_select', char_opts)
-            st.selectbox("Protagonista", char_opts, index=idx_char, key="char_select")
+            # NUKEEO DE ESTADO CORRUPTO ANTES DE DIBUJAR
+            nuke_corrupted_state('char_select', char_opts)
+            char_sel = st.selectbox("Protagonista", char_opts, key="char_select")
             
-            # Lógica post-render
-            current_char_val = char_opts[idx_char] # Usamos el valor seguro
-            if "📷" in current_char_val: final_sub = "MAIN SUBJECT: The character in the provided reference image"
-            elif "--" in current_char_val: final_sub = ""
-            else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(current_char_val, '')}"
+            # Valor seguro post-render
+            if "📷" in char_sel: final_sub = "MAIN SUBJECT: The character in the provided reference image"
+            elif "--" in char_sel: final_sub = ""
+            else: final_sub = f"MAIN SUBJECT: {st.session_state.characters.get(char_sel, '')}"
 
         with c2:
             enhance_mode = st.checkbox("🔥 Modo Architect (Expandir descripción)", value=True)
@@ -259,8 +250,8 @@ with st.form("main_form"):
         col_tmpl, col_btn = st.columns([3, 1])
         with col_tmpl:
             tpl_opts = ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys())
-            idx_tpl = get_safe_index('tpl_select', tpl_opts)
-            tpl = st.selectbox("Plantilla Rápida", tpl_opts, index=idx_tpl, key="tpl_select")
+            nuke_corrupted_state('tpl_select', tpl_opts)
+            tpl = st.selectbox("Plantilla Rápida", tpl_opts, key="tpl_select")
         with col_btn:
             if st.form_submit_button("📥 Pegar"):
                 if tpl != "Seleccionar...":
@@ -273,35 +264,31 @@ with st.form("main_form"):
     with t2:
         c1, c2 = st.columns(2)
         with c1:
-            idx_env = get_safe_index('env_select', DEMO_ENVIRONMENTS)
-            e_sel = st.selectbox("Entorno", DEMO_ENVIRONMENTS, index=idx_env, key="env_select")
+            nuke_corrupted_state('env_select', DEMO_ENVIRONMENTS)
+            e_sel = st.selectbox("Entorno", DEMO_ENVIRONMENTS, key="env_select")
             final_env = st.text_input("Custom Env", key="env_cust") if "Custom" in e_sel else e_sel
             
             all_props = ["None", "✏️ Custom..."] + list(st.session_state.custom_props.keys()) + DEMO_PROPS_LIST[2:]
-            idx_prop = get_safe_index('prop_select', all_props)
-            prop_sel = st.selectbox("Objeto", all_props, index=idx_prop, key="prop_select")
+            nuke_corrupted_state('prop_select', all_props)
+            prop_sel = st.selectbox("Objeto", all_props, key="prop_select")
             
-            # Recuperar valor seguro
-            real_prop = all_props[idx_prop]
-            if real_prop in st.session_state.custom_props: final_prop = st.session_state.custom_props[real_prop]
-            elif "Custom" in real_prop: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
-            elif "None" not in real_prop: final_prop = real_prop
+            if prop_sel in st.session_state.custom_props: final_prop = st.session_state.custom_props[prop_sel]
+            elif "Custom" in prop_sel: final_prop = translate_to_english(st.text_input("Objeto Nuevo", key="np"))
+            elif "None" not in prop_sel: final_prop = prop_sel
             else: final_prop = ""
 
         with c2:
             st.info("💡 Consejo: Elige manga corta/larga explícitamente.")
-            idx_ward = get_safe_index('ward_select', DEMO_WARDROBE)
-            ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, index=idx_ward, key="ward_select")
-            
-            real_ward = DEMO_WARDROBE[idx_ward]
-            if "Custom" in real_ward: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
-            else: final_ward = real_ward
+            nuke_corrupted_state('ward_select', DEMO_WARDROBE)
+            ward_sel = st.selectbox("Vestuario", DEMO_WARDROBE, key="ward_select")
+            if "Custom" in ward_sel: final_ward = translate_to_english(st.text_input("Ropa Custom", key="wc"))
+            else: final_ward = ward_sel
 
     with t3:
         c1, c2 = st.columns(2)
         with c1: 
-            idx_phy = get_safe_index('phy_select', list(PHYSICS_LOGIC.keys()))
-            phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), index=idx_phy, key="phy_select")
+            nuke_corrupted_state('phy_select', list(PHYSICS_LOGIC.keys()))
+            phy_med = st.selectbox("Medio Físico", list(PHYSICS_LOGIC.keys()), key="phy_select")
         with c2: 
             phy_det = st.multiselect("Detalles", PHYSICS_LOGIC[phy_med])
 
@@ -309,14 +296,23 @@ with st.form("main_form"):
         st.info("💡 Usa 'Sugerir Look' en la barra lateral para configurar esto automáticamente.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, index=get_safe_index('shot_select', LIST_SHOT_TYPES), key="shot_select")
-            st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, index=get_safe_index('ar_select', DEMO_ASPECT_RATIOS), key="ar_select")
+            nuke_corrupted_state('shot_select', LIST_SHOT_TYPES)
+            st.selectbox("1. Encuadre", LIST_SHOT_TYPES, key="shot_select", help="Extreme Long: Paisajes épicos. Long: Cuerpo entero. Medium: Cintura arriba. Close-Up: Rostro y emoción.")
+            
+            nuke_corrupted_state('ar_select', DEMO_ASPECT_RATIOS)
+            st.selectbox("4. Formato", DEMO_ASPECT_RATIOS, key="ar_select")
         with c2:
-            st.selectbox("2. Ángulo", LIST_ANGLES, index=get_safe_index('angle_select', LIST_ANGLES), key="angle_select")
-            st.selectbox("5. Iluminación", DEMO_LIGHTING, index=get_safe_index('lit_select', DEMO_LIGHTING), key="lit_select")
+            nuke_corrupted_state('angle_select', LIST_ANGLES)
+            st.selectbox("2. Ángulo", LIST_ANGLES, key="angle_select", help="Low Angle: Poder/Monstruos. High Angle: Debilidad. Dutch: Tensión/Terror.")
+            
+            nuke_corrupted_state('lit_select', DEMO_LIGHTING)
+            st.selectbox("5. Iluminación", DEMO_LIGHTING, key="lit_select", help="Chiaroscuro: Drama/Terror. Golden Hour: Épico/Bello. Neon: Futurista.")
         with c3:
-            st.selectbox("3. Lente", LIST_LENSES, index=get_safe_index('lens_select', LIST_LENSES), key="lens_select")
-            st.selectbox("6. Estilo", DEMO_STYLES, index=get_safe_index('sty_select', DEMO_STYLES), key="sty_select")
+            nuke_corrupted_state('lens_select', LIST_LENSES)
+            st.selectbox("3. Lente", LIST_LENSES, key="lens_select", help="16mm: Gran angular/Escala. 35mm: Cine clásico. 85mm: Retrato/Fondo borroso.")
+            
+            nuke_corrupted_state('sty_select', DEMO_STYLES)
+            st.selectbox("6. Estilo", DEMO_STYLES, key="sty_select")
 
     with t5:
         st.subheader("🎹 Suno AI (Generador Musical)")
@@ -410,7 +406,7 @@ elif submit_main:
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # Recuperación por clave segura
+    # Recuperación segura
     w_shot = st.session_state.get('shot_select', LIST_SHOT_TYPES[0])
     w_angle = st.session_state.get('angle_select', LIST_ANGLES[0])
     w_lens = st.session_state.get('lens_select', LIST_LENSES[0])
@@ -419,7 +415,6 @@ elif submit_main:
     
     auto_look = apply_smart_look_logic(eng_action) if enhance_mode else {}
     
-    # Lógica híbrida
     final_shot = w_shot if "Neutral" not in w_shot else auto_look.get('shot', "")
     final_angle = w_angle if "Neutral" not in w_angle else auto_look.get('angle', "")
     final_lens = w_lens if "Neutral" not in w_lens else auto_look.get('lens', "")
@@ -445,13 +440,12 @@ elif submit_main:
     st.session_state.generated_explanation = "\n".join(b.explanation)
 
 # --- 11. MOSTRAR RESULTADO ---
-# Acceso seguro mediante .get para evitar AttributeError
-final_output = st.session_state.get('generated_output', "")
-final_explanation = st.session_state.get('generated_explanation', "")
+output = st.session_state.get("generated_output", "")
+explanation = st.session_state.get("generated_explanation", "")
 
-if final_output:
+if output:
     st.markdown("---")
-    if final_explanation:
-        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{final_explanation}</div>', unsafe_allow_html=True)
+    if explanation:
+        st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
-    st.code(final_output, language="text")
+    st.code(output, language="text")
