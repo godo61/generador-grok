@@ -13,9 +13,6 @@ except ImportError:
     TRANSLATOR_AVAILABLE = False
 
 # --- 2. GESTIÓN DE ESTADO (CALLBACKS) ---
-# Definimos estas funciones ANTES para usarlas como callbacks en los botones.
-# Esto asegura que el texto se guarde antes de ejecutar la lógica.
-
 def safe_state_init():
     defaults = {
         'generated_output': "",
@@ -24,6 +21,7 @@ def safe_state_init():
         'custom_props': {"Guitarra": "vintage electric guitar", "Kayak": "carbon fiber kayak"},
         'uploader_key': 0,
         'act_input': "",
+        'dna_input': "",  # <--- RECUPERADO: Variable para el ADN
         'last_img_name': ""
     }
     for k, v in defaults.items():
@@ -53,12 +51,10 @@ def apply_smart_look_logic(text):
         res.update({'shot': "Long Shot (Full Body)", 'angle': "Drone Aerial View", 'lens': "Fisheye (Distorted)", 'sty': "Action Movie Screengrab"})
     return res
 
-# --- CALLBACKS CLAVE (LA SOLUCIÓN AL TEXTO BORRADO) ---
+# --- CALLBACKS ---
 def callback_suggest_look():
-    """Se ejecuta al pulsar 'Sugerir Look'. El texto YA está guardado en session_state."""
     action = st.session_state.get('act_input', "")
     suggestions = apply_smart_look_logic(action)
-    
     mappings = [
         ('shot_select', LIST_SHOT_TYPES, suggestions['shot']),
         ('angle_select', LIST_ANGLES, suggestions['angle']),
@@ -66,30 +62,21 @@ def callback_suggest_look():
         ('lit_select', DEMO_LIGHTING, suggestions['lit']),
         ('sty_select', DEMO_STYLES, suggestions['sty'])
     ]
-    
     for key, options, target in mappings:
         for opt in options:
             if target.split('(')[0] in opt:
                 st.session_state[key] = opt
                 break
-    # No hace falta st.rerun(), el callback fuerza el redibujado automático con los nuevos valores.
 
 def callback_reset_scene():
     st.session_state.act_input = ""
     st.session_state.generated_output = ""
     st.session_state.generated_explanation = ""
     st.session_state.uploader_key += 1
-    # Limpiamos selectores
+    # Nota: NO borramos el ADN al resetear la escena, porque suele ser global para el proyecto.
     keys = ['char_select', 'shot_select', 'angle_select', 'lens_select', 'lit_select', 'sty_select', 'env_select', 'ward_select', 'phy_select']
     for k in keys:
         if k in st.session_state: del st.session_state[k]
-
-def callback_paste_template():
-    # Esta función se llama desde el botón de "Pegar"
-    # Necesitamos leer el valor del selectbox auxiliar, que aún no está en session_state oficial
-    # Así que lo haremos dentro del flujo normal, o usamos un truco de key.
-    # Para simplificar, mantendremos la lógica de pegado en el flujo principal pero con cuidado.
-    pass
 
 # --- 3. DATOS Y LISTAS RESTANTES ---
 DEMO_ENVIRONMENTS = ["✏️ Custom...", "🛶 Dusi River (Turbulent Rapids)", "🔴 Mars Surface (Red Dust)", "🌌 Deep Space (Nebula)", "🚀 ISS Interior", "🌊 Underwater Coral Reef", "❄️ Arctic Tundra", "🏙️ Cyberpunk City", "🌲 Mystic Forest"]
@@ -125,7 +112,7 @@ PHYSICS_LOGIC = {
     "🌬️ Viento": ["High wind drag", "Fabric fluttering"]
 }
 
-# --- 4. WRAPPER BLINDADO (Immune Selectbox) ---
+# --- 4. WRAPPER BLINDADO ---
 def immune_selectbox(label, options, key, **kwargs):
     if key in st.session_state and st.session_state[key] not in options:
         st.session_state[key] = options[0]
@@ -189,7 +176,12 @@ with st.sidebar:
     st.title("🔥 Config VFX")
     apply_custom_styles(st.toggle("🌙 Modo Oscuro", value=True))
     
-    # BOTÓN CON CALLBACK (SOLUCIÓN): Al usar on_click, Streamlit guarda el texto antes de ejecutar.
+    # 🧬 CAJA DE ADN (RECUPERADA)
+    with st.expander("🧬 ADN de Estilo / Parámetros"):
+        st.caption("Texto fijo al final del prompt (ej: --style raw --weird 50)")
+        st.text_area("Pegar ADN aquí:", key="dna_input", height=100)
+
+    st.markdown("---")
     st.button("🎲 Sugerir Look (Aplicar)", on_click=callback_suggest_look)
     st.button("🗑️ Nueva Escena", on_click=callback_reset_scene)
 
@@ -209,7 +201,7 @@ with st.sidebar:
     uploaded_end = st.file_uploader("End Frame", type=["jpg", "png"], key=f"up_end_{st.session_state.uploader_key}")
 
 # --- 8. MAIN ---
-st.title("🎬 Grok Production Studio (V85)")
+st.title("🎬 Grok Production Studio (V86)")
 
 t1, t2, t3, t4, t5, t6 = st.tabs(["🎬 Acción", "🎒 Assets", "⚛️ Física", "🎥 Cinematografía", "🎵 Audio (Suno)", "📘 Guía"])
 
@@ -231,7 +223,6 @@ with t1:
 
     col_tmpl, col_btn = st.columns([3, 1])
     with col_tmpl:
-        # Selectbox temporal para la plantilla
         tpl_sel = st.selectbox("Plantilla Rápida", ["Seleccionar..."] + list(NARRATIVE_TEMPLATES.keys()), key="tpl_temp")
     with col_btn:
         if st.button("📥 Pegar"):
@@ -240,7 +231,6 @@ with t1:
                 st.rerun()
 
     st.markdown("##### 📜 Descripción de la Acción")
-    # TEXT AREA VINCULADA AL ESTADO. El valor persiste gracias a los callbacks de los botones.
     current_text_input = st.text_area("Describe la escena:", height=100, key="act_input")
 
 with t2:
@@ -313,7 +303,6 @@ with t6:
     st.markdown("Guía rápida: Usa el botón 'Sugerir Look' para configurar la cámara automáticamente.")
 
 st.markdown("---")
-# BOTÓN DE GENERACIÓN FINAL
 if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     raw_action = current_text_input if current_text_input else st.session_state.get('act_input', "")
     eng_action = translate_to_english(raw_action)
@@ -353,7 +342,6 @@ if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     if phy_det: atm.append(f"PHYSICS: {', '.join(phy_det)}")
     b.add(". ".join(atm))
     
-    # Recuperación segura
     w_shot = st.session_state.get('shot_select', LIST_SHOT_TYPES[0])
     w_angle = st.session_state.get('angle_select', LIST_ANGLES[0])
     w_lens = st.session_state.get('lens_select', LIST_LENSES[0])
@@ -379,6 +367,11 @@ if st.button("✨ GENERAR PROMPT DE VÍDEO (PRO)", type="primary"):
     
     b.add(f"CINEMATOGRAPHY: {'. '.join(cine_parts)}.")
     if final_sty: b.add(f"STYLE: {final_sty.split('(')[0]}")
+    
+    # --- AQUÍ AÑADIMOS EL ADN RECUPERADO ---
+    dna = st.session_state.get('dna_input', "").strip()
+    if dna:
+        b.add(f"STYLE DNA / PARAMS: {dna}")
     
     ar_val = st.session_state.get('ar_select', DEMO_ASPECT_RATIOS[0]).split('(')[0].strip()
     b.add(f"--ar {ar_val}")
