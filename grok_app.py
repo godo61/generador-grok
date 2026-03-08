@@ -384,4 +384,6 @@ if st.session_state.generated_output:
     if st.session_state.generated_explanation:
         st.markdown(f'<div class="strategy-box"><b>💡 Estrategia:</b><br>{st.session_state.generated_explanation}</div>', unsafe_allow_html=True)
     st.subheader("📝 Prompt Final")
+
     st.code(st.session_state.generated_output, language="text")
+    .
